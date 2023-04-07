@@ -773,7 +773,7 @@ const CheckAccess = (token,transactionPIN)=>{
        res.data = res.data[0];
        const user = res.data;
       //  console.log(res.data)
-       if(transactionPIN && String(transactionPIN) !== String(user.TransactionPin))
+       if(transactionPIN && EnCrypPassword(String(transactionPIN)) !== String(user.TransactionPin))
        {
         res.message = "Oops! Invalid transaction PIN.";
         res.status = false;
@@ -3305,7 +3305,7 @@ const UpdateToken = (data)=>{
 const MerchantVerifyCash = (data)=>{
   return new Promise((resolve)=>{
     AntiHacking(data).then((result)=>{
-      const checklist = ["referenceNumber","token","payout"];
+      const checklist = ["referenceNumber","token","payout","transactionPIN"];
       CheckEmptyInput(result.data,checklist).then((errorMessage)=>{
           if(errorMessage)
           {
@@ -3316,7 +3316,7 @@ const MerchantVerifyCash = (data)=>{
                 });
           }else{
             const params = result.data;
-            CheckAccess(params.token).then((response)=>{
+            CheckAccess(params.token,params.transactionPIN).then((response)=>{
             if(response.status)
             {
             // verify reference number
@@ -3387,7 +3387,7 @@ const MerchantAcceptCash = (data)=>{
                 });
           }else{
             const params = result.data;
-            CheckAccess(params.token).then((response)=>{
+            CheckAccess(params.token,params.transactionPIN).then((response)=>{
             if(response.status)
             {
               const currentUser = response.data;
@@ -3580,7 +3580,7 @@ const AdminTransactions =(data)=>{
 const PickUpCash = (data)=>{
   return new Promise((resolve)=>{
     AntiHacking(data).then((result)=>{
-      const checklist = ["token","phoneNumber","amount","memo"];
+      const checklist = ["token","phoneNumber","amount","memo","transactionPIN"];
       CheckEmptyInput(result.data,checklist).then((errorMessage)=>{
           if(errorMessage)
           {
@@ -3591,7 +3591,7 @@ const PickUpCash = (data)=>{
                 });
           }else{
             const params = result.data;
-            CheckAccess(params.token).then((response)=>{
+            CheckAccess(params.token,params.transactionPIN).then((response)=>{
             if(response.status)
             {
             const currentUser = response.data;
