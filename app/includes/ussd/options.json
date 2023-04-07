@@ -1,0 +1,45 @@
+{
+"1":{
+        "title":"Check balance",
+        "description":"",
+        "options":
+        [
+        {"title":"Enter Transaction PIN"}
+        ]
+    },
+"2":{
+    "title":"Payment",
+    "description":"Payment options",
+    "options":[
+    {"title":"Transfer to AbaaPay Wallet","show":true,
+      "options":[
+        "Enter AbaaPay's Wallet ID",
+        "Enter Amount",
+        "Enter Transaction PIN"
+      ]
+    },
+      {"title":"Send money","show":true,
+        "options":[
+        "Enter recepient phone number",
+        "Enter Amount",
+        "Enter Transaction PIN"
+        ]
+      }
+    ]
+    },
+"3": {
+    "title":"Transaction History",
+    "description":"",
+    "options":[
+        {"title":"Transaction PIN"}
+    ]
+    },
+"4": {
+    "title":"Create Account",
+    "description":"",
+    "options":[
+        {"title":"Create regular account"},
+        {"title":"Create merchant account"}
+    ]
+    }
+}

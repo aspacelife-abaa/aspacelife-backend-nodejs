@@ -1,0 +1,52 @@
+module.exports = (app)=>{
+// regular account routes
+require("./routes/regular/login")(app);
+require("./routes/regular/registration")(app);
+require("./routes/regular/dashboard")(app);
+require("./routes/regular/fund-wallet")(app);
+require("./routes/regular/transfer")(app);
+require("./routes/regular/transaction_history")(app);
+require("./routes/regular/send_token")(app);
+require("./routes/regular/token_verification")(app);
+require("./routes/regular/account_verification")(app);
+require("./routes/regular/listofbanks")(app);
+require("./routes/regular/linkaccount")(app);
+require("./routes/regular/bank_accounts")(app);
+require("./routes/regular/delete_bank_account")(app);
+require("./routes/regular/userdetails")(app);
+require("./routes/regular/withdrawal")(app);
+require("./routes/regular/change_password")(app);
+require("./routes/regular/change_transaction_pin")(app);
+require("./routes/regular/email_notification")(app);
+require("./routes/regular/sms_notification")(app);
+require("./routes/regular/account_rules")(app);
+require("./routes/regular/settings")(app);
+require("./routes/regular/add_new_phonenumber")(app);
+require("./routes/regular/toggle_setting")(app);
+require("./routes/regular/remove_number")(app);
+require("./routes/regular/account_activation")(app);
+require("./routes/regular/check_secondary_number")(app);
+require("./routes/regular/data_purchase")(app);
+require("./routes/regular/data_history")(app);
+require("./routes/regular/get_electricity_provider")(app);
+require("./routes/regular/get_data_plans")(app);
+require("./routes/regular/airtime_providers")(app);
+require("./routes/regular/airtime_purchase")(app);
+require("./routes/regular/airtime_history")(app);
+require("./routes/regular/purchase_electricity")(app);
+require("./routes/regular/forgot_pasword")(app);
+require("./includes/ussd")(app);
+require("./routes/regular/pickup_cash")(app);
+// merchant account routes
+require("./routes/merchant/account_upgrade")(app);
+require("./routes/merchant/cac_verification")(app);
+require("./routes/merchant/get_uploads")(app);
+require("./routes/merchant/get_merchant_details")(app);
+require("./routes/merchant/verify_cash")(app);
+require("./routes/merchant/payout_cash")(app);
+// admin
+require("./routes/admin/delete_upload")(app);
+require("./routes/admin/transactions")(app);
+require("./routes/regular/test")(app);
+require("./routes/regular/baseroute")(app);
+}
