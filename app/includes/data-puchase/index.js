@@ -1,4 +1,4 @@
-const {SMSBaseUrl,SMSFolder,SenderID,FlutterWaveTestSecret, AIRTIMENG_APIToken} = require('../config');
+const {SMSBaseUrl,SMSFolder,SenderID,FlutterWaveTestSecret, AIRTIMENG_APIToken, isLive} = require('../config');
 const BuyData = async(data,ref)=>{
     const response = await Post(data,ref);
     return response;
@@ -10,7 +10,7 @@ async function  Post(data,ref){
     package_code:data.dataPlanId,
     customer_reference:ref,
     max_amount:data.amount,
-    callback_url:'https://dcfc-102-91-49-133.eu.ngrok.io/v1.0/data_callback'
+    callback_url:'https:staging.aspacelife.com/v1.0/data_callback'
   });
  
     var options = {
@@ -42,7 +42,7 @@ async function  Post(data,ref){
         resolve({status:false,data:{},message:"Oops! only N140 (500mb) MTN is allowed"});
         return ;
       }
-      if(parseInt(data.amount) !== 140)
+      if(parseInt(data.amount) !== 140 && !isLive)
       {
         resolve({status:false,data:{},message:"Oops! only N140 (500mb) MTN is allowed"});
         return ;
@@ -80,7 +80,6 @@ async function  Post(data,ref){
             })
         }
       });
-        
     
       res.on("error", function (error) {
         console.error(error);

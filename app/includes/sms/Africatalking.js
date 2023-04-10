@@ -31,7 +31,7 @@ async function  Post(body){
         data.append('to',"+234"+parseInt(String(body.numbers).replace("+234","")));
         data.append('message',body.message);
         var config = {
-        method: 'post',
+        method:'post',
         url: 'https://api.africastalking.com/version1/messaging',
         headers: { 
             'apiKey': AFRICATALKING_APIKEY, 
@@ -41,11 +41,13 @@ async function  Post(body){
         };
 
         Axios(config).then(function (response) {
-        resolve({
-            status:true,
-            message:"",
-            data:JSON.parse(xml.xml2json(response.data))
-        })
+            const rep = {
+                status:true,
+                message:"",
+                data:JSON.parse(xml.xml2json(response.data))
+            }
+        console.log(rep,"|",JSON.stringify(data));
+        resolve(rep)
         }).catch(function (error) {
         console.log(error);
         resolve({

@@ -7,18 +7,16 @@ const EmailValidator = require('email-validator');
 const AntiHacking = (data)=>{
     return new Promise((resolve)=>{
       let checkedData = data;
-      const whitelist = ["oldPassword","newPassword","Password"];
-      
+      let blackList = [];
+      let blackListRegex = /^[\/\\,+()$~%='`"%!;-?|:*?<>{}]/g;
       Object.keys(checkedData).forEach((a,i)=>{
-        if(!whitelist.includes(a) || !EmailValidator.validate(checkedData[a]))
+        if(String(checkedData[a]).match(blackListRegex))
         {
-        let checkString = String(checkedData[a]);
-        checkString = String(checkString).replace(/[&\/\\#,+()$~%=.'`"%!;?|:*?<>{}]/g, '');
-        checkString = String(checkString).replace(/ or /g, '');
-        checkedData[a] = checkString;
+          blackList.push({a:checkedData[a]});
         }
       })
-      resolve({error:false,data:checkedData})
+      console.log(blackList.length != 0);
+      resolve({error:blackList.length != 0,data:blackList.length !== 0?{}:checkedData})
     });
   }
   module.exports = {

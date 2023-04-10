@@ -170,7 +170,7 @@ const Registration = (userInfo)=>{
       }
   const userData = data.data;
   let checkList = ["FirstName","LastName","PhoneNumber","Password","EmailAddress","Nin","dob","TransactionPin","account_type"];
-  if(userData.MiddleName)
+  if(userData["MiddleName"] !== undefined)
   {
     checkList.push("MiddleName")
   }
@@ -181,6 +181,7 @@ const Registration = (userInfo)=>{
     delete userData.Nin;
     delete userData.dob;
   }
+ 
   CheckEmptyInput(userData,checkList).then((errorMessage)=>{
   if(errorMessage)
   {
@@ -191,6 +192,7 @@ const Registration = (userInfo)=>{
     })
     return ;
   }
+  
   // check email existence, check NIN existence, check mobile number existence
   QueryDB(`select * from users where PhoneNumber='${userData.PhoneNumber}' or EmailAddress='${userData.EmailAddress}' or Nin='${userData.Nin}' limit 1`).then((response)=>{
     if(response.status)
@@ -200,7 +202,7 @@ const Registration = (userInfo)=>{
       resolve({
         status:false,
         data:{},
-        message:`Oops! ${user.EmailAddress == userData.EmailAddress?'Email address':user.PhoneNumber == userData.PhoneNumber?"PhoneNumber":user.Nin == userData.Nin?"Nin":""} already in use.`
+        message:`Oops! ${user.EmailAddress == userData.EmailAddress?'Email address':user.PhoneNumber == userData.PhoneNumber?"phone number":user.Nin == userData.Nin?"NIN":""} already in use.`
       })
       return;
     }
@@ -387,7 +389,7 @@ const CheckEmptyInput = (data,list)=>{
   if(keyExist.length == 0){
     if(data["EmailAddress"] && !EmailValidator.validate(data["EmailAddress"]))
     {
-      resolve(`Oops! a valid email address is required`); 
+      resolve(`Oops! a valid email address is required.`); 
     }else if(data["PhoneNumber"] && data["PhoneNumber"].length < parseInt(String(PhoneNumberSize)))
     {
       resolve(`Oops! a valid phone number is required`); 
@@ -489,7 +491,7 @@ const WalletFunding = (data)=>{
       {
       resolve(txn);
       }else{
-      UpdateWalletBalance(user,data.data.amount,"funding",data.data.reference).then((res)=>{
+      UpdateWalletBalance(user,data.data.amount,"credit",data.data.reference).then((res)=>{
       if(res.status)
       {
         const sms = `Credit Amt:${NairaSymbol}${returnComma(data.data.amount)} Acc:${MaskNumber(String(String(user.PhoneNumber)))} Desc: wallet funding via Paystack Time:${Moment().format("DD/MM/YYYY hh:mm A")} Total Bal:${NairaSymbol}${returnComma(res.data.balance)}`;
@@ -506,7 +508,7 @@ const WalletFunding = (data)=>{
             PhoneNumber:String(user.PhoneNumber),
             token:"",
             transaction_ref:params.reference,
-            transaction_type:"funding",
+            transaction_type:"credit",
             status:String(txn.status)
           })
       }
@@ -587,7 +589,7 @@ CheckEmptyInput(params,checkList).then((errorMessage)=>{
             {
               resolve({
                 status:false,
-                message:`Your wallet balance is too low for this transaction`,
+                message:`Insufficient balance (NGN${senderWalletData.balance})`,
                 data:data
               });
               return ;
@@ -675,14 +677,13 @@ CheckEmptyInput(params,checkList).then((errorMessage)=>{
 const SendMoney = (data)=>{
   const referenceNumber = EnCrypPassword(Moment().format("DDMMYYYYhhmmss"));
   return new Promise((resolve)=>{
-  
-   UpdateWalletBalance(data.reciever,String(data.amount),"funding",referenceNumber).then((recieverWalletResponse)=>{
+   UpdateWalletBalance(data.reciever,String(data.amount),"credit",referenceNumber).then((recieverWalletResponse)=>{
     if(recieverWalletResponse.status)
     {
       const rsms = `Credit\nAmt:${NairaSymbol}${returnComma(String(data.amount))}\nAcc:${MaskNumber(String(data.reciever.PhoneNumber))}\nDesc: wallet-to-wallet from ${data.sender.FirstName} ${data.sender.LastName}(${data.sender.PhoneNumber})\nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nTotal Bal:${NairaSymbol}${returnComma(recieverWalletResponse.data.balance)}`;
       console.log(rsms);
       SendSMS(GetDefaultPhoneNumber(data.reciever,String(data.reciever.PhoneNumber_Secondary)),rsms);
-      SendEmail("Debit transaction",`Debit<br/>
+      SendEmail("Credit transaction",`Credit<br/>
       Amt:${NairaSymbol}${returnComma(String(data.amount))}<br/>
       Acc:${MaskNumber(String(data.reciever.PhoneNumber))}
       Desc:wallet-to-wallet from ${data.sender.FirstName} ${data.sender.LastName}<br/>
@@ -691,18 +692,18 @@ const SendMoney = (data)=>{
       SaveTransactionHistory({
         amount:String(data.amount),
         beneficiary_account:String(data.reciever.PhoneNumber),
-        customer_name:data.sender.FirstName+" "+data.sender.LastName,
+        customer_name:data.reciever.FirstName+" "+data.reciever.LastName,
         beneficiary_bank_name:`${AppName} wallet`,
         PhoneNumber:String(data.reciever.PhoneNumber),
         memo:`wallet-to-wallet from ${data.sender.FirstName} ${data.sender.LastName}`,
         token:"",
         transaction_ref:referenceNumber,
-        transaction_type:"funding",
+        transaction_type:"credit",
         status:"success"
        })
     }
    })
-   UpdateWalletBalance(data.sender,String(data.amount),"transfer",referenceNumber).then((res)=>{
+   UpdateWalletBalance(data.sender,String(data.amount),"debit",referenceNumber).then((res)=>{
     if(res.status) 
    {
      // send email ans sms
@@ -717,13 +718,13 @@ const SendMoney = (data)=>{
      SaveTransactionHistory({
       amount:String(data.amount),
       beneficiary_account:String(data.reciever.PhoneNumber),
-      customer_name:data.reciever.FirstName+" "+data.reciever.LastName,
+      customer_name:data.sender.FirstName+" "+data.sender.LastName,
       beneficiary_bank_name:`${AppName} wallet`,
       PhoneNumber:String(data.sender.PhoneNumber),
       memo:`wallet-to-wallet transfer to ${data.reciever.FirstName} ${data.reciever.LastName}`,
       token:"",
       transaction_ref:referenceNumber,
-      transaction_type:"transfer",
+      transaction_type:"debit",
       status:"success"
      })
    }
@@ -772,7 +773,6 @@ const CheckAccess = (token,transactionPIN)=>{
        }
        res.data = res.data[0];
        const user = res.data;
-      //  console.log(res.data)
        if(transactionPIN && EnCrypPassword(String(transactionPIN)) !== String(user.TransactionPin))
        {
         res.message = "Oops! Invalid transaction PIN.";
@@ -862,9 +862,9 @@ const QueryDB = (q)=>{
 const UpdateWalletBalance = (receiver,amount,updateType,refNo)=>{
   return new Promise((resolve)=>{
   // update sender's balane and history
-    NonAuthGetUserDetails({PhoneNumber:String(receiver.PhoneNumber)}).then((u)=>{
-    if(u.status)
-    {
+ NonAuthGetUserDetails({PhoneNumber:String(receiver.PhoneNumber)}).then((u)=>{
+ if(u.status)
+  {
   GetWalletBalance(String(receiver.PhoneNumber)).then((res)=>{
   if(!res.status)
   {
@@ -877,27 +877,19 @@ const UpdateWalletBalance = (receiver,amount,updateType,refNo)=>{
     });
     }else{
    const WalletData = res.data[0];
-   if(parseFloat(WalletData.balance) < parseFloat(amount))
-   {
-    res.status = false;
-    res.data = {}
-    res.message = `Your Wallet balance is low (Balance: ${NairaSymbol}${returnComma(WalletData.balance)}).`;
-    resolve(res);
-   }else{
-   const balance = updateType == 'funding'?String(parseFloat(WalletData.balance) + parseFloat(amount)):String(parseFloat(WalletData.balance) - parseFloat(amount));
+   const balance = updateType == 'credit'?String(parseFloat(WalletData.balance) + parseFloat(amount)):String(parseFloat(WalletData.balance) - parseFloat(amount));
    QueryDB(GetQueryString(["balance"],{
     balance
    },'update','wallets',{phone_number:receiver.PhoneNumber})).then((res)=>{
     if(res.status)
     {
     res.data = {balance}
-    res.message = "Wallet successfully funded.";
+    res.message = updateType == 'credit'?"Wallet successfully funded.":"Wallet successfully debited.";
     }else{
       res.message = "Wallet not funded.";
     }
     resolve(res);
   });
-} 
    }
   })
 }else{ 
@@ -1813,11 +1805,11 @@ CheckEmptyInput(params,checkList).then((errorMessage)=>{
   }
  if(String(params.newTransactionPIN).length == TxnPINSize)
 {
- QueryDB(`update users set TransactionPin='${params.newTransactionPIN}' where EmailAddress='${user.EmailAddress}' `).then((res)=>{
+ QueryDB(`update users set TransactionPin='${EnCrypPassword(params.newTransactionPIN)}' where EmailAddress='${user.EmailAddress}' `).then((res)=>{
 //   SendSMS(user.PhoneNumber,sms);
     if(res.status)
     {
-     SendEmail("New Transaction Pin",`Your new transaction PIN is :<b>${params.newTransactionPIN}</b> <br/> if you did not perform this action please contact us imidiately.`,user);
+     SendEmail("New Transaction Pin",`Your new transaction PIN is :<b>${MaskNumber(params.newTransactionPIN)}</b> <br/> if you did not perform this action please contact us imidiately.`,user);
     }  
      res.message = res.status?"Transaction PIN updated successfully.":"Transaction PIN not updated";
      resolve(res);
@@ -2409,10 +2401,10 @@ const CACVerification = (data)=>{
     // CheckAccess(result.data.token).then((response)=>{
     //   if(response.status)
     //   {
-     let checkList = ["cac_number_or_name"];
+     let checkList = ["cac_number"];
      let params = result.data;
      delete params.token;
-     if(isNaN(params.cac_number_or_name))
+     if(isNaN(params.cac_number))
      {
       resolve({
         status:false,
@@ -2430,7 +2422,7 @@ const CACVerification = (data)=>{
             data:{}
           });
         }else{
-         VerifyCAC(params.cac_number_or_name).then((re)=>{
+         VerifyCAC(params.cac_number).then((re)=>{
           resolve(re);  
         })
         }
@@ -2739,7 +2731,7 @@ const DataPurchase = (data)=>{
               amount:amount
             },'insert','data_purchase'))
           }else{
-            UpdateWalletBalance(currentuser,amount,'funding',ref);
+            UpdateWalletBalance(currentuser,amount,'credit',ref);
           }
           SaveTransactionHistory({
             amount:params.amount,
@@ -3072,7 +3064,7 @@ const PurchaseAirtime = (data)=>{
             })
           }else{
            // update wallet balance
-          UpdateWalletBalance(currentuser,data.amount,'funding',ref);
+          UpdateWalletBalance(currentuser,data.amount,'credit',ref);
           }
          resolve(airtimeres);
          })
@@ -3215,7 +3207,7 @@ const ElectricityPurchase = (data)=>{
             })
           }else{
            // update wallet balance
-          UpdateWalletBalance(currentuser,data.amount,'funding',ref);
+          UpdateWalletBalance(currentuser,data.amount,'credit',ref);
           }
          resolve(elecResponse);
          })
@@ -3323,10 +3315,19 @@ const MerchantVerifyCash = (data)=>{
             QueryDB(`select * from BaseAccount where refNo='${params.referenceNumber}' limit 1`).then((res)=>{
               if(res.status)
               {
-                
               // send token for verification
               const responseData = res.data[0];
+              NonAuthGetUserDetails({PhoneNumber:responseData.transactionFrom}).then((uResp)=>{ 
                 // SendToken()
+                let senderData = {
+                  FirstName:"",
+                  LastName:""
+                };
+                if(uResp.status)
+                {
+                  senderData.FirstName = uResp.data.FirstName;
+                  senderData.LastName = uResp.data.LastName;
+                }
                 if(String(responseData.transactionRef) !== "null")
               {
                 resolve({
@@ -3342,10 +3343,11 @@ const MerchantVerifyCash = (data)=>{
                   {
                   SendToken({PhoneNumber:responseData.transactionTo,token:params.token}).then((mres)=>{
                   mres.data = responseData;
+                  mres.data  = Object.assign(mres.data,senderData);
                   resolve(mres);
                 })
                 }else{
-                res.data = res.status?responseData:{};
+                res.data = res.status?Object.assign(responseData,senderData):{};
                 res.message = "Data fetched..."
                 resolve(res); 
                 }
@@ -3356,6 +3358,7 @@ const MerchantVerifyCash = (data)=>{
                     dataData
                   });
               }
+            })
               }else{
               resolve({
                 status:false,
@@ -3376,7 +3379,7 @@ const MerchantVerifyCash = (data)=>{
 const MerchantAcceptCash = (data)=>{
   return new Promise((resolve)=>{
     AntiHacking(data).then((result)=>{
-      const checklist = ["referenceNumber","token","vericationToken"];
+      const checklist = ["referenceNumber","token","vericationToken","transactionPIN"];
       CheckEmptyInput(result.data,checklist).then((errorMessage)=>{
           if(errorMessage)
           {
@@ -3390,37 +3393,37 @@ const MerchantAcceptCash = (data)=>{
             CheckAccess(params.token,params.transactionPIN).then((response)=>{
             if(response.status)
             {
-              const currentUser = response.data;
             QueryDB(`select * from BaseAccount where refNo='${params.referenceNumber}' limit 1`).then((res)=>{
               if(res.status)
               {
               // send token for verification
               const responseData = res.data[0];
-              if(String(responseData.transactionRef) !== "null")
+              if(String(responseData.transactionStatus) == "paid")
               {
                 resolve({
                   status:false,
                   message:`Oops! Funds already cashout from the system.`,
                   data:{}
                 });
-                return;
-              }
-              TokenVerification({PhoneNumber:responseData.transactionTo,verificationToken:params.vericationToken}).then((tk)=>{
-              // verify reference number
-             if(tk.status)
-             { 
+              }else{
+              
              GetMerchantDetails({token:params.token}).then((mchResp)=>{
-             if(!mchResp.status)
+              if(!mchResp.status)
              {
+              mchResp.message = "Oops! Merchant not exist."
               resolve(mchResp);
               return;
              }
+             TokenVerification({PhoneNumber:responseData.transactionTo,verificationToken:params.vericationToken}).then((tk)=>{
+              // verify reference number
+             if(tk.status)
+             { 
              const merchantData = mchResp.data;
-             if(String(merchantData.PhoneNumber) == String(currentUser.PhoneNumber))
+             if(String(merchantData.PhoneNumber) == String(responseData.transactionTo))
              {
                resolve({
                  status:false,
-                 message:`Oops! You cannot transaction to your wallet.`,
+                 message:`Oops! You cannot transfer to your wallet.`,
                  data:{}
                });
                return;
@@ -3440,11 +3443,12 @@ const MerchantAcceptCash = (data)=>{
                     data:{}
                   });
               }
-               })
-              }else{
-                resolve(tk)
-              }
+            }else{
+              resolve(tk)
+            }
+            })
              })
+              }
               }else{
               resolve({
                 status:false,
@@ -3462,40 +3466,41 @@ const MerchantAcceptCash = (data)=>{
       })
     })
 }
-const UpdateWalletBalanceBaseAccount = (receiver,response,refNo,token)=>{
+const UpdateWalletBalanceBaseAccount = (merchantData,response,refNo,token)=>{
   return new Promise((resolve)=>{
-  // update merchant's balance and history
-    GetMerchantDetails({token:token}).then((u)=>{
-    if(u.status)
-    {
-  GetWalletBalance(String(receiver.PhoneNumber)).then((res)=>{
+    // resolve(response)
+    // return;
+  GetWalletBalance(String(merchantData.PhoneNumber)).then((res)=>{
   if(res.status)
   {
+    QueryDB(`update BaseAccount set transactionStatus='paid',transactionRef='${refNo}',merchantId='${merchantData.merchantId}' where refNo='${response.refNo}' `)
    const WalletData = res.data[0];
    const balance = String(parseFloat(WalletData.balance) + parseFloat(String(response.transactionAmount)));
-   QueryDB(`update wallets set balance='${balance}' where phone_number='${receiver.PhoneNumber}' limit 1`).then((res)=>{
+   QueryDB(`update wallets set balance='${balance}' where phone_number='${merchantData.PhoneNumber}' limit 1`).then((res)=>{
     if(res.status)
     {
     res.message = "Wallet successfully funded.";
-    QueryDB(`update BaseAccount set transactionStatus='paid',transactionRef='${refNo}',	merchantId='${receiver.merchantId}' where refNo='${response.transactionRef}' limit 1`)
     // send sms to merchant and save transaction history
     SaveTransactionHistory({
       amount:String(response.transactionAmount),
       beneficiary_account:String(response.transactionTo),
       beneficiary_bank_name:"AbaaPay Wallet",
-      customer_name:"USSD Transaction",
-      memo:`USSD Payout to ${response.transactionTo}`,
-      PhoneNumber:String(receiver.PhoneNumber),
+      customer_name:"Cash Pick-Up",
+      memo:`Cash Pick-Up to ${response.transactionTo}`,
+      PhoneNumber:String(merchantData.PhoneNumber),
       token:"",
       transaction_ref:refNo,
-      transaction_type:"funding"
+      transaction_type:"credit"
     })
     // send SMS
-    SendSMS(response.transactionTo,`NGN${response.transactionAmount} paid out successfully to ${response.transactionTo} via Merchant ${receiver.FirstName} ${receiver.LastName} (${receiver.PhoneNumber})`);
+    SendSMS(response.transactionTo,`NGN${response.transactionAmount} paid out successfully to ${response.transactionTo} via Merchant ${merchantData.FirstName} ${merchantData.LastName} (${merchantData.PhoneNumber})`);
     // send confirmation msg to merchant
-    SendSMS(String(response.transactionTo),`Your wallet has been credited with NGN${response.transactionAmount} \nTxtRef:${refNo}\nDate:${Moment().format("DD/MM/YYYY hh:mm:ss A")}`);
-    }else{
-      res.message = "Wallet not funded.";
+    SendSMS(String(merchantData.PhoneNumber),`Your wallet has been credited with NGN${response.transactionAmount} \nTxtRef:${refNo}\nDate:${Moment().format("DD/MM/YYYY hh:mm:ss A")}`);
+    // send confirmation msg to sender
+    SendSMS(String(response.transactionFrom),`NGN${response.transactionAmount} has been successfully picked up by ${response.transactionTo} \nTxtRef:${refNo}\nDate:${Moment().format("DD/MM/YYYY hh:mm:ss A")}`);
+    res.message = "Amount successfull paid out.";
+  }else{
+      res.message = "Amount not paid.";
     }
     resolve(res);
   });
@@ -3503,10 +3508,6 @@ const UpdateWalletBalanceBaseAccount = (receiver,response,refNo,token)=>{
     resolve(res);
   } 
   })
-}else{ 
-resolve(u)
-}
-    })
   }) 
 }
 const AdminTransactions =(data)=>{
@@ -3661,6 +3662,89 @@ const PickUpCash = (data)=>{
     })
   })
 }
+const MerchantRegistration = (userInfo)=>{
+  return new Promise((resolve)=>{
+  AntiHacking(userInfo).then((data)=>{
+      if(data.error)
+      {
+        resolve({
+          status:false,
+          message:`Oops try again next time.`,
+          data:null
+        });
+        return;
+      }
+  const userData = data.data;
+  const checkList = ["cac_number","company_name","company_address","registration_date","PhoneNumber","Password","EmailAddress","TransactionPin"];
+  CheckEmptyInput(userData,checkList).then((errorMessage)=>{
+  if(errorMessage)
+  {
+    resolve({
+     status:false,
+     data:{},
+     message:errorMessage.toString() 
+    })
+    return ;
+  }
+  // check email existence, check NIN existence, check mobile number existence
+  QueryDB(`select * from users where PhoneNumber='${userData.PhoneNumber}' or EmailAddress='${userData.EmailAddress}' limit 1`).then((response)=>{
+    if(response.status)
+    {
+      let user = response.data[0];
+      resolve({
+        status:false,
+        data:{},
+        message:`Oops! ${user.EmailAddress == userData.EmailAddress?'Email address':user.PhoneNumber == userData.PhoneNumber?"phone number":""} already in use.`
+      })
+      return;
+    }
+    if(!ValidateBOD(userInfo.registration_date))
+    {
+      resolve({
+        status:false,
+        data:{},
+        message:`Oops! Invalid registration date.`
+      })
+      return;
+    }
+   userData.Password = EnCrypPassword(userData.Password);
+   let merchantId = Md5(String(userData.cac_number)).substring(0,6);
+   QueryDB(`select * from merchant_profile where cac_number='${userData.cac_number}' limit 1`).then((a)=>{
+    if(!a.status)
+    {
+      let qy = `insert into merchant_profile (cac_number,company_name,company_address,registration_date,merchantId,PhoneNumber) values('${userData.cac_number}','${userData.company_name}','${userData.company_address}','${userData.registration_date}','${merchantId}','${userData.PhoneNumber}')`;
+      QueryDB(qy).then((resp)=>{
+      userData.TransactionPin = EnCrypPassword(String(userData.TransactionPin));
+      qy = `insert into merchant_profile (cac_number,company_name,company_address,registration_date,merchantId,PhoneNumber) values('${userData.cac_number}','${userData.company_name}','${userData.company_address}','${userData.registration_date}','${merchantId}','${userData.PhoneNumber}')`;
+      QueryDB(`insert into users(FirstName,PhoneNumber,EmailAddress,Password,TransactionPin,email_notification, sms_notification,account_type,default_PhoneNumber) values('${userData.company_name}','${userData.PhoneNumber}','${userData.EmailAddress}','${userData.Password}','${userData.TransactionPin}','1','1','merchant','${userData.PhoneNumber}')`).then((res)=>{
+        if(res.status)
+        {
+          res.message = "Registration was successful.";
+          res.data = {}; 
+          // send email
+          SendEmail(`Registration at ${AppName}`,`Hi ${userData.company_name}, <br/>your registration was successful, the following are your login details:<br/><b>Phone number</b>:${userData.PhoneNumber}<br/>`,userData);
+          // send sms
+          SendSMS(String(userData.PhoneNumber),`Hi ${userData.company_name}, you have successfully registered as merchant at ${AppName}, your merchant CODE is: ${merchantId}.`);
+          resolve(res);
+        }else{
+          res.message = "Oops! Registration was not successful.";
+          res.data = {};
+          resolve(res);
+        }
+      })
+      });
+  }else{
+    a.status = false;
+    a.data = {}
+    a.message = "Oops! cac number already in use."
+    resolve(a)
+  }
+  })
+  })
+})
+  })
+  });
+}
 module.exports = {
     UserLogin,
     Registration,
@@ -3713,6 +3797,8 @@ module.exports = {
     GetMerchantDetails,
     MerchantVerifyCash,
     MerchantAcceptCash,
+    MerchantRegistration,
     // admin
-    AdminTransactions
+    AdminTransactions,
+    UpdateWalletBalance
 };

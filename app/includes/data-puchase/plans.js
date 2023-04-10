@@ -1,5 +1,5 @@
 var https = require('follow-redirects').https;
-const {SMSBaseUrl,SMSFolder,SenderID,FlutterWaveTestSecret} = require('../config');
+const {SMSBaseUrl,SMSFolder,SenderID,FlutterWaveTestSecret,isLive} = require('../config');
 
 const GetDataPlans = async(bill_code)=>{
    const response = await Post(bill_code)

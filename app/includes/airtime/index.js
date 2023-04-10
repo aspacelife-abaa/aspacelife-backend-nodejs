@@ -6,7 +6,6 @@ const GetAirtimeServices = async()=>{
     return response;
 }
 async function  Post(){
-   
     var options = {
         'method': 'GET',
         'hostname': 'api.flutterwave.com',

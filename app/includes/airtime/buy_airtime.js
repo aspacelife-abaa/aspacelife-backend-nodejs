@@ -1,24 +1,16 @@
 var https = require('follow-redirects').https;
-const {SMSBaseUrl,SMSFolder,SenderID,FlutterWaveTestSecret, AIRTIMENG_APIKey, AIRTIMENG_APIToken} = require('../config');
+const {SMSBaseUrl,SMSFolder,SenderID,FlutterWaveTestSecret, AIRTIMENG_APIKey, AIRTIMENG_APIToken,isLive} = require('../config');
 
 const AirtimePurchase = async(data,ref)=>{
    const response = await Post(data,ref);
    return response;
 }
 async function  Post(data,ref){
-  // var postData = JSON.stringify({
-  //   country:"NG",
-  //   customer:data.phone_number,
-  //   reference:ref,
-  //   amount:data.amount,
-  //   type:"AIRTIME",
-  //   recurrence:'ONCE'
-  // });
   const name = String(data.biller_name).toLowerCase().split(" ");
   let postData = JSON.stringify({
     network_operator:name[0],
     phone:data.phone_number,
-    amount:"50",//data.amount,
+    amount:isLive?data.amount:"50",
     customer_reference:ref,
     max_amount:20000,
     callback_url: `/airtime_callback`
