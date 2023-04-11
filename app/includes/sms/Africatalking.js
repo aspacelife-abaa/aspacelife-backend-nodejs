@@ -34,7 +34,7 @@ async function  Post(body){
         method:'post',
         url: 'https://api.africastalking.com/version1/messaging',
         headers: { 
-            'apiKey': AFRICATALKING_APIKEY, 
+            'apiKey': AFRICATALKING_APIKEY+"k", 
             ...data.getHeaders()
         },
         data : data

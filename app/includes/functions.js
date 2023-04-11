@@ -915,15 +915,8 @@ resolve(u)
 }
 const SaveTransactionHistory = (data)=>{
   return new Promise((resolve)=>{
-   
   const checkList = ["amount","memo","PhoneNumber","transaction_ref","transaction_type","beneficiary_account","customer_name","beneficiary_bank_name"];
-  // if(data.status != undefined)
-  // {
-  // delete params.status;
-  // params.transaction_status = data.status;
-  // }
-  
-  CheckEmptyInput({
+  let x = {
     amount:data.amount,
     memo:data.memo,
     PhoneNumber:data.PhoneNumber,
@@ -932,8 +925,13 @@ const SaveTransactionHistory = (data)=>{
     beneficiary_account:data.beneficiary_account,
     customer_name:data.customer_name,
     beneficiary_bank_name:data.beneficiary_bank_name
-  },checkList).then((errorMessage)=>{
-   
+  }
+  if(data.split_payment_ref != undefined)
+  {
+    checkList.push("split_payment_ref");
+    x.split_payment_ref =  data.split_payment_ref;
+  }
+  CheckEmptyInput(x,checkList).then((errorMessage)=>{
   if(errorMessage)
   {
     resolve({
@@ -3822,7 +3820,7 @@ const CreateSplitAccount = (data)=>{
       })
       return ;
     }
-    CheckAccess(requestData.token).then((res)=>{
+    CheckAccess(requestData.token,requestData.transactionPIN).then((res)=>{
       if(!res.status)
       {
         resolve(res)
@@ -3888,6 +3886,7 @@ const CreateSplitAccount = (data)=>{
           SendSMS(currentUser.PhoneNumber,sms);
           const msg = `Debit<br/>Amt: ${NairaSymbol}${returnComma(requestData.amount)} <br/>Acc: ${MaskNumber(String(currentUser.PhoneNumber))} <br/>Desc: Split payment<br/>Beneficiaries: ${beneficiaries.length} <br/>Time:${Moment().format("DD/MM/YYYY hh:mm A")} <br/>Total Bal:${NairaSymbol}${returnComma(String(balance))}`;
           SendEmail("Split payment",msg,currentUser);
+          const sPRef = Md5(String(Moment().format("DDMMYYYhhmmss")));
           // save sender's transaction history
           SaveTransactionHistory({
                   amount:String(requestData.amount),
@@ -3899,9 +3898,12 @@ const CreateSplitAccount = (data)=>{
                   token:"",
                   transaction_ref:txRef,
                   transaction_type:"debit",
-                  status:"success"
+                  status:"success",
+                  split_payment_ref:sPRef
                 })
           // save to split payment table
+          
+          QueryDB(`INSERT INTO split_payment(sPRef,spAmount,spTitle, spNumberOfPaticipants,spDistributions,sPPhoneNumber) VALUES ('${sPRef}','${requestData.amount}','${requestData.group_name}','${requestData.beneficiaries}','${requestData.distribution}','${currentUser.PhoneNumber}')`);
           beneficiaries.forEach((a)=>{
           const eachAmount = parseFloat(requestData.amount) / parseInt(beneficiaries.length);
            if(a.exist)
@@ -3913,6 +3915,19 @@ const CreateSplitAccount = (data)=>{
           const uBalance = bre.data.balance;
           const sms1 = `Credit\nAmt: ${NairaSymbol}${returnComma(eachAmount)} \nAcc: ${MaskNumber(String(a.PhoneNumber))} \nDesc:${AppName} Split payment\nFrom: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber}) \nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nbalance: ${NairaSymbol}${returnComma(uBalance)}`;
           SendSMS(a.PhoneNumber,sms1);
+          SaveTransactionHistory({
+            amount:String(eachAmount),
+            beneficiary_account:String(a.PhoneNumber),
+            beneficiary_bank_name:"AbaaPay Wallet",
+            customer_name:`${a.name}`,
+            memo:`Split Payment from ${currentUser.FirstName} ${currentUser.LastName}`,
+            PhoneNumber:String(a.PhoneNumber),
+            token:"",
+            transaction_ref:txRef,
+            transaction_type:"credit",
+            status:"success",
+            split_payment_ref:sPRef
+          })
             })
           }
           if(requestData.distribution == "manually")
@@ -3953,6 +3968,109 @@ const CreateSplitAccount = (data)=>{
 })
   })
 }
+const SplitAccountHistory = (data)=>{
+return new Promise((resolve)=>{
+    AntiHacking(data).then((data)=>{
+        if(data.error)
+        {
+          resolve({
+            status:false,
+            message:`Oops try again next time.`,
+            data:null
+          });
+          return;
+        }
+    const requestData = data.data;
+    const checkList = ["token"];
+    CheckEmptyInput(requestData,checkList).then((errorMessage)=>{
+    if(errorMessage)
+    {
+      resolve({
+       status:false,
+       data:{},
+       message:errorMessage.toString() 
+      })
+      return ;
+    }
+    CheckAccess(requestData.token).then((res)=>{
+      if(!res.status)
+      {
+        resolve(res)
+        return;
+      }
+     const currentUser = res.data;
+     QueryDB(`SELECT * FROM split_payment WHERE sPPhoneNumber='${currentUser.PhoneNumber}'`).then((payRes)=>{
+      payRes.data = payRes.data.map((a,i)=>{
+        return {
+          group_name:a.spTitle,
+          amount:a.spAmount,
+          beneficiaries:String(a.spNumberOfPaticipants).split(","),
+          distribution:a.spDistributions,
+          date:a.spDate,
+          ref:a.sPRef
+        }
+      })
+      resolve(payRes);
+     })
+  })
+})
+  })
+})
+}
+const GetSplitIndividualHistory = (data)=>{
+  return new Promise((resolve)=>{
+      AntiHacking(data).then((data)=>{
+          if(data.error)
+          {
+            resolve({
+              status:false,
+              message:`Oops try again next time.`,
+              data:null
+            });
+            return;
+          }
+      const requestData = data.data;
+      const checkList = ["token","ref"];
+      CheckEmptyInput(requestData,checkList).then((errorMessage)=>{
+      if(errorMessage)
+      {
+        resolve({
+         status:false,
+         data:{},
+         message:errorMessage.toString() 
+        })
+        return ;
+      }
+      CheckAccess(requestData.token).then((res)=>{
+        if(!res.status)
+        {
+          resolve(res)
+          return;
+        }
+       const currentUser = res.data;
+       QueryDB(`SELECT * FROM transactions INNER JOIN users ON transactions.beneficiary_account=users.PhoneNumber WHERE transactions.split_payment_ref='${requestData.ref}' order by transactions.transaction_id desc`).then((payRes)=>{
+        payRes.data = payRes.data.map((a,i)=>{
+          return {
+            txtId:a.transaction_id,
+            beneficiary:a.beneficiary_account,
+            transaction_type:a.transaction_type,
+            amount:a.amount,
+            memo:a.memo,
+            bank_name:a.beneficiary_bank_name,
+            txtRef:a.transaction_ref,
+            status:a.transaction_status,
+            date:a.transaction_date,
+            firstName:String(a.FirstName).replace("null",""),
+            lastName:String(a.LastName).replace("null","")
+          }
+        })
+        resolve(payRes);
+       })
+    })
+  })
+    })
+  })
+  }
 module.exports = {
     UserLogin,
     Registration,
@@ -4003,6 +4121,8 @@ module.exports = {
     PickUpCash,
     NewPassword,
     CreateSplitAccount,
+    SplitAccountHistory,
+    GetSplitIndividualHistory,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,
