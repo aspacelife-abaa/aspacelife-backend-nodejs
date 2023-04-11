@@ -424,7 +424,7 @@ const Dashboard = (token)=>{
       GetWalletBalance(response.data.PhoneNumber).then((res)=>{
        if(res.status)
        {
-        response.data.wallet = res.data[0];
+        response.data.wallet = res.data;
         delete response.data.wallet.created_at;
         delete response.data.wallet.phone_number;
        }else{
@@ -746,6 +746,21 @@ return new Promise((resolve)=>{
     })
   }else{
 QueryDB(`select * from wallets where phone_number='${PhoneNumber}' limit 1`).then((res)=>{
+  if(res.status)
+  {
+  if(Array.isArray(res.data))
+  {
+  res.data = res.data[0];
+  }else{
+    res.data = {
+      balance:0
+    }
+  }
+  }else{
+    res.data = {
+      balance:0
+    }
+  }
   resolve(res)
 })
 }
@@ -876,7 +891,7 @@ const UpdateWalletBalance = (receiver,amount,updateType,refNo)=>{
       resolve(res);
     });
     }else{
-   const WalletData = res.data[0];
+   const WalletData = res.data;
    const balance = updateType == 'credit'?String(parseFloat(WalletData.balance) + parseFloat(amount)):String(parseFloat(WalletData.balance) - parseFloat(amount));
    QueryDB(GetQueryString(["balance"],{
     balance
@@ -1177,7 +1192,7 @@ const LinkAccount = (data)=>{
           GetWalletBalance(user.PhoneNumber).then((uBalance)=>{
             if(uBalance.status)
             {
-              const balance = parseFloat(uBalance.data[0].balance)+parseFloat(PaymentRefundableAmount);
+              const balance = parseFloat(uBalance.data.balance)+parseFloat(PaymentRefundableAmount);
               QueryDB(`update wallets set balance='${balance}' where phone_number='${user.PhoneNumber}' limit 1`);
             }
           });
@@ -1503,7 +1518,7 @@ GetWalletBalance(String(user.PhoneNumber)).then((senderResponse)=>{
 if(senderResponse.status)
 {
         // transfer to wallet
-          senderResponse.data = senderResponse.data[0]
+          senderResponse.data = senderResponse.data
           delete senderResponse.data.wallet_id;
           delete senderResponse.data.phone_number;
           delete senderResponse.data.created_at;
@@ -2661,7 +2676,7 @@ const GetMerchantDetails = (data)=>{
       GetWalletBalance(user.PhoneNumber).then((rse)=>{
         if(rse.status)
         {
-         let wallet = rse.data[0]; 
+         let wallet = rse.data; 
           delete  wallet.phone_number;
           delete  wallet.created_at;
           res.data.wallet = wallet;
@@ -3287,7 +3302,44 @@ const ForgotPassword = (data)=>{
     })
     })
 }
-
+const NewPassword = (data)=>{
+  return new Promise((resolve)=>{
+    AntiHacking(data).then((result)=>{
+      const checklist = ["new_password","phone_number"];
+      CheckEmptyInput(result.data,checklist).then((errorMessage)=>{
+          if(errorMessage)
+          {
+                resolve({
+                  status:false,
+                  message:String(errorMessage),
+                  data:{}
+                });
+          }else{
+            const params = result.data;
+            NonAuthGetUserDetails({PhoneNumber:params.phone_number}).then((rse)=>{
+              if(!rse.status)
+              {
+                resolve(rse);
+                return ;
+              }
+              // send sms 
+              SendSMS(params.phone_number,`You have successfully reset your password, if you did not perform this action please contact us - ${CustomerServicePhoneNumber} immediately.`);
+              // send email
+              SendEmail("New Password",`You have successfully reset your password<br/> <b>Details:</b><br/>New Password: ${params.new_password}<br/> if you did not perform this action please contact us via the  following - <br/><b>Mobile Number:</b> ${CustomerServicePhoneNumber}<br/><b>Email:</b> ${CustomerServiceEmail} immediately.`,rse.data);
+              // update pasword
+              QueryDB(`update users set Password='${EnCrypPassword(String(params.new_password).trim())}' where PhoneNumber='${params.phone_number}' limit 1`).then((res)=>{
+                resolve({
+                  status:res.status,
+                  message:res.status?"New password updated successfully.":"Oops! Password not saved, try again later.",
+                  data:{}
+                });  
+              });
+          })
+      }
+    })
+    })
+    })
+}
 const UpdateToken = (data)=>{
  setTimeout(()=>{
   const pin = generateRandomNumber(parseInt(String(VerifiedPINSize)+3));
@@ -3474,7 +3526,7 @@ const UpdateWalletBalanceBaseAccount = (merchantData,response,refNo,token)=>{
   if(res.status)
   {
     QueryDB(`update BaseAccount set transactionStatus='paid',transactionRef='${refNo}',merchantId='${merchantData.merchantId}' where refNo='${response.refNo}' `)
-   const WalletData = res.data[0];
+   const WalletData = res.data;
    const balance = String(parseFloat(WalletData.balance) + parseFloat(String(response.transactionAmount)));
    QueryDB(`update wallets set balance='${balance}' where phone_number='${merchantData.PhoneNumber}' limit 1`).then((res)=>{
     if(res.status)
@@ -3490,7 +3542,8 @@ const UpdateWalletBalanceBaseAccount = (merchantData,response,refNo,token)=>{
       PhoneNumber:String(merchantData.PhoneNumber),
       token:"",
       transaction_ref:refNo,
-      transaction_type:"credit"
+      transaction_type:"credit",
+      status:"success"
     })
     // send SMS
     SendSMS(response.transactionTo,`NGN${response.transactionAmount} paid out successfully to ${response.transactionTo} via Merchant ${merchantData.FirstName} ${merchantData.LastName} (${merchantData.PhoneNumber})`);
@@ -3608,7 +3661,7 @@ const PickUpCash = (data)=>{
               GetWalletBalance(String(currentUser.PhoneNumber)).then((res)=>{
                 if(res.status)
                 {
-                 const WalletData = res.data[0];
+                 const WalletData = res.data;
                  if(parseFloat(WalletData.balance) < parseFloat(String(result.data.amount)))
                  {
                   resolve({
@@ -3745,6 +3798,161 @@ const MerchantRegistration = (userInfo)=>{
   })
   });
 }
+const CreateSplitAccount = (data)=>{
+  return new Promise((resolve)=>{
+    AntiHacking(data).then((data)=>{
+        if(data.error)
+        {
+          resolve({
+            status:false,
+            message:`Oops try again next time.`,
+            data:null
+          });
+          return;
+        }
+    const requestData = data.data;
+    const checkList = ["amount","group_name","beneficiaries","distribution","transactionPIN","token"];
+    CheckEmptyInput(requestData,checkList).then((errorMessage)=>{
+    if(errorMessage)
+    {
+      resolve({
+       status:false,
+       data:{},
+       message:errorMessage.toString() 
+      })
+      return ;
+    }
+    CheckAccess(requestData.token).then((res)=>{
+      if(!res.status)
+      {
+        resolve(res)
+        return;
+      }
+      const currentUser = res.data;
+     GetWalletBalance(currentUser.PhoneNumber).then((re)=>{
+     if(!re.status)
+     {
+      re.message = "Oops! account does not exist.";
+      re.data = {};
+      resolve(re)
+      return ;
+     }
+      const WalletData = re.data;
+      if(parseFloat(WalletData.balance) < parseFloat(requestData.amount))
+      {
+        resolve({
+          status:false,
+          message:`Insufficient balance (NGN${WalletData.balance})`,
+          data:{
+            balance:WalletData.balance
+          }
+        });
+      }else{
+        // select all beneficiaries
+        let allBeneficiaries = String(requestData.beneficiaries).split(",");
+        let currentUserNumberExist = allBeneficiaries.find((a)=>a == currentUser.PhoneNumber);
+        if(currentUserNumberExist)
+        {
+        resolve({
+          status:false,
+          data:currentUserNumberExist,
+          message:`Oops! your number cannot be included among beneficiaries.`
+        })
+          return ;
+        }
+        let beneficiaries = allBeneficiaries.map((a,i)=>String(a)).filter((a,i)=>String(a).trim() !== "");
+        QueryDB(`SELECT * FROM users WHERE PhoneNumber IN ('${beneficiaries.join("','")}')`).then((beneRes)=>{
+          let users = [];
+          if(beneRes.status)
+          {
+            users = beneRes.data.map((a,i)=>{
+              return {PhoneNumber:a.PhoneNumber,name:a.FirstName+" "+a.LastName}
+            })
+          }
+          
+          beneficiaries = allBeneficiaries.map((a,i)=>{
+            const foundUser = users.find((b)=>b.PhoneNumber == a);
+            if(foundUser)
+            {
+            foundUser.name = String(foundUser.name.replace("null","")).trim();
+            return {...foundUser,exist:true};
+            }else{
+            return {PhoneNumber:a,name:`Unregistered user`,exist:false}
+            }
+          })
+          const txRef = String(Md5(Moment().toISOString()))
+          UpdateWalletBalance(currentUser,requestData.amount,'debit',txRef).then((upResp)=>{
+          const balance = upResp.data.balance;
+          // send debit sms to current user
+          const sms = `Debit\nAmt: ${NairaSymbol}${returnComma(requestData.amount)} \nAcc: ${MaskNumber(String(currentUser.PhoneNumber))} \nDesc: Split payment\nBeneficiaries: ${beneficiaries.length} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(balance))}`;
+          SendSMS(currentUser.PhoneNumber,sms);
+          const msg = `Debit<br/>Amt: ${NairaSymbol}${returnComma(requestData.amount)} <br/>Acc: ${MaskNumber(String(currentUser.PhoneNumber))} <br/>Desc: Split payment<br/>Beneficiaries: ${beneficiaries.length} <br/>Time:${Moment().format("DD/MM/YYYY hh:mm A")} <br/>Total Bal:${NairaSymbol}${returnComma(String(balance))}`;
+          SendEmail("Split payment",msg,currentUser);
+          // save sender's transaction history
+          SaveTransactionHistory({
+                  amount:String(requestData.amount),
+                  beneficiary_account:String(currentUser.PhoneNumber),
+                  beneficiary_bank_name:"AbaaPay Wallet",
+                  customer_name:`${beneficiaries.length} beneficiaries`,
+                  memo:`${requestData.group_name} (Split Payment)`,
+                  PhoneNumber:String(currentUser.PhoneNumber),
+                  token:"",
+                  transaction_ref:txRef,
+                  transaction_type:"debit",
+                  status:"success"
+                })
+          // save to split payment table
+          beneficiaries.forEach((a)=>{
+          const eachAmount = parseFloat(requestData.amount) / parseInt(beneficiaries.length);
+           if(a.exist)
+          {
+          if(requestData.distribution == "evenly")
+          {
+          UpdateWalletBalance(a,eachAmount,'credit',txRef).then((bre)=>{
+          console.log("bre:",bre.data.balance);
+          const uBalance = bre.data.balance;
+          const sms1 = `Credit\nAmt: ${NairaSymbol}${returnComma(eachAmount)} \nAcc: ${MaskNumber(String(a.PhoneNumber))} \nDesc:${AppName} Split payment\nFrom: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber}) \nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nbalance: ${NairaSymbol}${returnComma(uBalance)}`;
+          SendSMS(a.PhoneNumber,sms1);
+            })
+          }
+          if(requestData.distribution == "manually")
+          {
+          UpdateWalletBalance(a,eachAmount,'credit',txRef).then((bre)=>{
+          console.log("bre:",bre.data.balance);
+          const uBalance = bre.data.balance;
+          const sms1 = `Credit\nAmt: ${NairaSymbol}${returnComma(eachAmount)} \nAcc: ${MaskNumber(String(a.PhoneNumber))} \nDesc:${AppName} Split payment\nFrom: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber}) \nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nbalance: ${NairaSymbol}${returnComma(uBalance)}`;
+          SendSMS(a.PhoneNumber,sms1);
+            })
+          }
+          }else{
+            if(requestData.distribution == "evenly")
+          {
+            // Save to base account
+            const refNo = String(Md5(String(Moment().format("DDMMYYYhhmmss"))).substring(0,6)).toUpperCase();
+            QueryDB(`insert into BaseAccount (transactionFrom,transactionTo,refNo,transactionStatus,transactionAmount) values('${currentUser.PhoneNumber}','${a.PhoneNumber}','${refNo}','pending','${eachAmount}')`);
+            const usms = `You have a cash Pick Up of ${NairaSymbol}${returnComma(eachAmount)} \nFROM: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber})\nRefNo: ${refNo} \nYou only need your mobile number for verification.`;
+            SendSMS(a.PhoneNumber,usms);
+          }
+          if(requestData.distribution == "manually")
+          {
+
+          }
+        }
+          })
+          beneRes.data = {}
+          beneRes.message = `Split Payment was successful.`
+          resolve(beneRes)
+        })
+        })
+      }
+    })
+    })
+    
+    
+  })
+})
+  })
+}
 module.exports = {
     UserLogin,
     Registration,
@@ -3793,6 +4001,8 @@ module.exports = {
     UpdateToken,
     NonAuthGetUserDetails,
     PickUpCash,
+    NewPassword,
+    CreateSplitAccount,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,

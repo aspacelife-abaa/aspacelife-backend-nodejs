@@ -37,6 +37,8 @@ require("./routes/regular/purchase_electricity")(app);
 require("./routes/regular/forgot_pasword")(app);
 require("./includes/ussd")(app);
 require("./routes/regular/pickup_cash")(app);
+require("./routes/regular/new_password")(app);
+require("./routes/regular/create_split_account")(app);
 // merchant account routes
 require("./routes/merchant/account_upgrade")(app);
 require("./routes/merchant/cac_verification")(app);
