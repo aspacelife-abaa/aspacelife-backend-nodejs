@@ -11,9 +11,11 @@ module.exports = (app)=>{
         // AntiHacking(params).then((resp)=>{
         //     res.json(resp) 
         // })
-     SendSMS("08161235924","Your token xxxx xxxx is").then((ress)=>{
-     res.json(ress);
-    })
+    //  SendSMS("08161235924","Your token xxxx xxxx is").then((ress)=>{
+     res.json({
+        tsau:"spsppsp"
+     });
+    // })
     // GeneratePDF("").then((ress)=>{
     //  res.json(ress); 
     // })
