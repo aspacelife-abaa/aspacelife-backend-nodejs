@@ -25,11 +25,11 @@ var req = https.request(options, function (res) {
   });
 
   res.on("end", function (chunk) {
-    var body = Buffer.concat(chunks);
+    var body = Buffer.concat(chunks).toString();
     console.log(body.toString());
-    const x  = JSON.parse(body.toString());
+    const x  = body[0] == "{"?JSON.parse(body):{message:"",data:[]};
     resolve({
-        status: x.data != null,
+        status: x.data != [],
         message:x.message,
         data:x.data
         })

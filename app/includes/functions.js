@@ -824,7 +824,6 @@ const CheckPassword = (Password,phoneNumber)=>{
 }
 // this method handles all queries to the database
 const QueryDB = (q)=>{
-  console.log(q)
     return new Promise((resolve,reject)=>{
       let dbSettings = {
         host:DatabaseHost,
@@ -832,10 +831,15 @@ const QueryDB = (q)=>{
         password:DatabasePassword,
         database:DatabaseName
       }
-      if(os.homedir().toString() == "/Users/mac")
+      if(String(os.homedir().toString()).includes("/Users/"))
       {
-        dbSettings = Object.assign(dbSettings,{port:DatabasePort});
+        dbSettings = Object.assign(dbSettings,{
+          port:DatabasePort,
+          password:"root",
+          user:"root"
+        });
       }
+  console.log(q)
       
       const connection =  createConnection(dbSettings);
       connection.connect();
@@ -2417,15 +2421,7 @@ const CACVerification = (data)=>{
      let checkList = ["cac_number"];
      let params = result.data;
      delete params.token;
-     if(isNaN(params.cac_number))
-     {
-      resolve({
-        status:false,
-        message:`CAC number must be digits.`,
-        data:{}
-      });
-      return ;
-     }
+    
       CheckEmptyInput(params,checkList).then((errorMessage)=>{
         if(errorMessage)
         {
@@ -3156,7 +3152,6 @@ const GetAirtimeHistory = (data)=>{
 })
 })
 }
-
 const ElectricityPurchase = (data)=>{
   return new Promise((resolve)=>{
     AntiHacking(data).then((result)=>{
@@ -3235,7 +3230,6 @@ const ElectricityPurchase = (data)=>{
     })
     })
 }
-
 const USSD = (data)=>{
   return new Promise((resolve)=>{
     const checklist = ["sessionId","serviceCode","phoneNumber","text","networkCode"];
@@ -4071,6 +4065,116 @@ const GetSplitIndividualHistory = (data)=>{
     })
   })
   }
+const PostSocialFeed = (data)=>{
+    return new Promise((resolve)=>{
+        AntiHacking(data).then((data)=>{
+            if(data.error)
+            {
+              resolve({
+                status:false,
+                message:`Oops try again next time.`,
+                data:null
+              });
+              return;
+            }
+        const requestData = data.data;
+        const checkList = ["token","content","title"];
+        if(requestData.imageUpload != undefined)
+        {
+          checkList.push("imageUpload");
+        }
+        CheckEmptyInput(requestData,checkList).then((errorMessage)=>{
+        if(errorMessage)
+        {
+          resolve({
+           status:false,
+           data:{},
+           message:errorMessage.toString() 
+          })
+          return ;
+        }
+        CheckAccess(requestData.token).then((res)=>{
+          if(!res.status)
+          {
+            resolve(res)
+            return;
+          }
+         const currentUser = res.data;
+         let qry = `INSERT INTO social_feeds(sFcontent,sFtitle,`
+         if(requestData.imageUpload != undefined)
+         {
+         qry += `sFImagePath,`
+         }
+         qry += `sFPhoneNumber) VALUES ('${requestData.content}','${requestData.title}'`;
+          if(requestData.imageUpload != undefined)
+         {
+         qry += `,'${requestData.imageUpload}',`
+         }
+         qry += `'${currentUser.PhoneNumber}')`;
+         QueryDB(qry).then((socialRes)=>{
+         if(socialRes.status)
+         {
+          socialRes.message = "Your post was successful.";
+         }else{
+          socialRes.message = "Oops! post was not successful.";
+         }
+          resolve(socialRes);
+         })
+      })
+    })
+      })
+    })
+    }
+const GetSocialFeed = (data)=>{
+      return new Promise((resolve)=>{
+          AntiHacking(data).then((data)=>{
+              if(data.error)
+              {
+                resolve({
+                  status:false,
+                  message:`Oops try again next time.`,
+                  data:null
+                });
+                return;
+              }
+          const requestData = data.data;
+          const checkList = ["token"];
+          if(requestData.limit != undefined)
+          {
+            checkList.push("limit");
+          }
+          CheckEmptyInput(requestData,checkList).then((errorMessage)=>{
+          if(errorMessage)
+          {
+            resolve({
+             status:false,
+             data:{},
+             message:errorMessage.toString() 
+            })
+            return ;
+          }
+          CheckAccess(requestData.token).then((res)=>{
+            if(!res.status)
+            {
+              resolve(res)
+              return;
+            }
+           const currentUser = res.data;
+           let qry = `select * from social_feeds order by rand() limit ${requestData.limit != undefined?requestData.limit:"0,50"}`;
+           QueryDB(qry).then((socialRes)=>{
+           if(socialRes.status)
+           {
+            socialRes.data = socialRes.data.map((a,i)=>{
+              return a;
+            })
+           }
+            resolve(socialRes);
+           })
+        })
+      })
+        })
+      })
+      }
 module.exports = {
     UserLogin,
     Registration,
@@ -4123,11 +4227,13 @@ module.exports = {
     CreateSplitAccount,
     SplitAccountHistory,
     GetSplitIndividualHistory,
+    PostSocialFeed,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,
     MerchantAcceptCash,
     MerchantRegistration,
+    GetSocialFeed,
     // admin
     AdminTransactions,
     UpdateWalletBalance
