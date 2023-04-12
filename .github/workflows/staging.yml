@@ -1,21 +1,16 @@
-name: AbaaPay staging
-on:
-  push:
-    branches:
-    - main
-
+on: push
+name: 🚀 AbaaPay staging
 jobs:
-  FTP-Deploy-Action:
-    name: FTP-Deploy-Action:
-      runs-on: ubuntu-latest
-      steps:
-      - uses: aspacelife-backend-nodejs@main
+  web-deploy:
+    name: 🎉 Deploy
+    runs-on: ubuntu-latest
+    steps:
+    - name: 🚚 Get latest code
+      uses: actions/checkout@v3
+    
+    - name: 📂 Sync files
+      uses: /home/aspacel1/staging
       with:
-        fetch-depth: 2
-        - name: AbaaPay FTP Actions
-        uses: aspacelife-backend-nodejs@main
-      with:
-        ftp-server: ${{ secrets.STAGING_SERVER }}
-        ftp-username: ${{ secrets.STAGING_USERNAME }}
-        ftp-password: ${{ secrets.STAGING_PASSWORD }}
-        ftp-port: ${{ secrets.STAGING_PORT }}
+        server: ${{ secrets.STAGING_SERVER }}
+        username: ${{ secrets.STAGING_USERNAME }}
+        password: ${{ secrets.STAGING_PASSWORD }}
