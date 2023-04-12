@@ -2,12 +2,11 @@ on: push
 name: 🚀 AbaaPay staging
 jobs:
   web-deploy:
-    name: 🎉 Deploy
+    name: 🎉 AbaaPay Backend Deployment
     runs-on: ubuntu-latest
     steps:
     - name: 🚚 Get latest code
       uses: actions/checkout@v3
-    
     - name: 📂 Sync files
       uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       with:
@@ -15,3 +14,8 @@ jobs:
         server: ${{ secrets.STAGING_SERVER }}
         username: ${{ secrets.STAGING_USERNAME }}
         password: ${{ secrets.STAGING_PASSWORD }}
+    - run: node --version
+    - run: npm --version
+    - run: node app/index.js
+     
+
