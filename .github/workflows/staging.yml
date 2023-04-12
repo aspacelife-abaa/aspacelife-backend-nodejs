@@ -16,6 +16,8 @@ jobs:
         password: ${{ secrets.STAGING_PASSWORD }}
     - run: node --version
     - run: npm --version
-    - run: node app/index.js
+
+    - run: npm install -g pm2
+    - run: pm2 restart
      
 
