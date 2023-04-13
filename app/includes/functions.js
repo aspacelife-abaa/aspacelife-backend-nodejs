@@ -707,9 +707,9 @@ const SendMoney = (data)=>{
     if(res.status) 
    {
      // send email ans sms
-     const sms = `Debit\nAmt:${NairaSymbol}${returnComma(String(data.amount))}\nAcc:${MaskNumber(String(data.sender.PhoneNumber))}\nDesc: wallet-to-wallet transfer to ${data.reciever.FirstName} ${data.reciever.LastName}\nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nTotal Bal:${NairaSymbol}${returnComma(res.data.balance)}`;
+     const sms = `${AppName} Debit\nAmt:${NairaSymbol}${returnComma(String(data.amount))}\nAcc:${MaskNumber(String(data.sender.PhoneNumber))}\nDesc: wallet-to-wallet transfer to ${data.reciever.FirstName} ${data.reciever.LastName}\nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nTotal Bal:${NairaSymbol}${returnComma(res.data.balance)}`;
      SendSMS(GetDefaultPhoneNumber(data.sender,String(data.sender.PhoneNumber_Secondary)),sms);
-     SendEmail("Debit transaction",`Debit<br/>
+     SendEmail(`Debit transaction`,`${AppName} Debit<br/>
      Amt:${NairaSymbol}${returnComma(String(data.amount))}<br/>
      Acc:${MaskNumber(String(data.sender.PhoneNumber))}
      Desc:wallet-to-wallet transfer to ${data.reciever.FirstName} ${data.reciever.LastName}<br/>
@@ -1557,9 +1557,9 @@ if(senderResponse.status)
           status:"pending"
         }).then((s)=>{
           // send email ans sms
-          const sms = `Debit Amt:${NairaSymbol}${returnComma(params.amount)} Acc:${MaskNumber(String(user.PhoneNumber))} Desc:withdrawal to bank account (${bank.account_number} - ${bank.bank_name}) Time:${Moment().format("DD/MM/YYYY hh:mm A")} Total Bal:${NairaSymbol}${returnComma(String(balance))}`;
+          const sms = `${AppName} Debit Amt:${NairaSymbol}${returnComma(params.amount)} Acc:${MaskNumber(String(user.PhoneNumber))} Desc:withdrawal to bank account (${bank.account_number} - ${bank.bank_name}) Time:${Moment().format("DD/MM/YYYY hh:mm A")} Total Bal:${NairaSymbol}${returnComma(String(balance))}`;
           SendSMS(GetDefaultPhoneNumber(user,String(user.PhoneNumber)),sms);
-          SendEmail("Debit transaction",`Debit<br/>
+          SendEmail(`Debit transaction`,`Debit<br/>
           Amt:${NairaSymbol}${returnComma(params.amount)}<br/>
           Acc:${MaskNumber(String(user.PhoneNumber))}
           Desc:withdrawal to bank account (${bank.account_number} - ${bank.bank_name})<br/>
@@ -3048,9 +3048,9 @@ const PurchaseAirtime = (data)=>{
           AirtimePurchase(data,ref).then((airtimeres)=>{
           if(airtimeres.status)
           {
-          const sms = `Debit Amt: ${NairaSymbol}${returnComma(params.amount)} \nAcc: ${MaskNumber(String(currentuser.PhoneNumber))} Desc: Airtime purchase \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(bal.data.balance))}`;
+          const sms = `${AppName} Debit Amt: ${NairaSymbol}${returnComma(params.amount)} \nAcc: ${MaskNumber(String(currentuser.PhoneNumber))} Desc: Airtime purchase \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(bal.data.balance))}`;
           SendSMS(GetDefaultPhoneNumber(currentuser,String(currentuser.PhoneNumber)),sms);
-          SendEmail("Debit transaction",`Debit<br/>
+          SendEmail(`${AppName} Debit transaction`,`Debit<br/>
           Amt: ${NairaSymbol}${returnComma(params.amount)}<br/>
           Acc: ${MaskNumber(String(currentuser.PhoneNumber))}
           Desc: Airtime purchase<br/>
@@ -3190,9 +3190,9 @@ const ElectricityPurchase = (data)=>{
           BuyElectricityReloadly(params,ref).then((elecResponse)=>{
           if(elecResponse.status)
           {
-          const sms = `Debit Amt: ${NairaSymbol}${returnComma(params.amount)} \nAcc: ${MaskNumber(String(currentuser.PhoneNumber))} Desc: Electricity bill purchase \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(bal.data.balance))}`;
+          const sms = `${AppName} Debit Amt: ${NairaSymbol}${returnComma(params.amount)} \nAcc: ${MaskNumber(String(currentuser.PhoneNumber))} Desc: Electricity bill purchase \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(bal.data.balance))}`;
           SendSMS(GetDefaultPhoneNumber(currentuser,String(currentuser.PhoneNumber)),sms);
-          SendEmail("Debit transaction",`Debit<br/>
+          SendEmail(`${AppName} Debit transaction`,`Debit<br/>
           Amt: ${NairaSymbol}${returnComma(params.amount)}<br/>
           Acc: ${MaskNumber(String(currentuser.PhoneNumber))}
           Desc: Electricity purchase<br/>
@@ -3894,9 +3894,9 @@ const CreateSplitAccount = (data)=>{
           UpdateWalletBalance(currentUser,requestData.amount,'debit',txRef).then((upResp)=>{
           const balance = upResp.data.balance;
           // send debit sms to current user
-          const sms = `Debit\nAmt: ${NairaSymbol}${returnComma(requestData.amount)} \nAcc: ${MaskNumber(String(currentUser.PhoneNumber))} \nDesc: Split payment\nBeneficiaries: ${beneficiaries.length} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(balance))}`;
+          const sms = `${AppName} Debit\nAmt: ${NairaSymbol}${returnComma(requestData.amount)} \nAcc: ${MaskNumber(String(currentUser.PhoneNumber))} \nDesc: Split payment\nBeneficiaries: ${beneficiaries.length} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(balance))}`;
           SendSMS(currentUser.PhoneNumber,sms);
-          const msg = `Debit<br/>
+          const msg = `${AppName} Debit<br/>
           Amt: ${NairaSymbol}${returnComma(requestData.amount)} <br/>
           Acc: ${MaskNumber(String(currentUser.PhoneNumber))} <br/>
           RefNo.: ${txRef} <br/>
@@ -4024,9 +4024,9 @@ const CreateSplitAccount = (data)=>{
           UpdateWalletBalance(currentUser,requestData.amount,'debit',txRef).then((upResp)=>{
           const balance = upResp.data.balance;
           // send debit sms to current user
-          const sms = `Debit\nAmt: ${NairaSymbol}${returnComma(requestData.amount)} \nAcc: ${MaskNumber(String(currentUser.PhoneNumber))} \nDesc: Split payment\nBeneficiaries: ${Registeredusers.concat(UnregisteredUsers).length}\nRefNo.: ${txRef} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(balance))}`;
+          const sms = `${AppName} Debit\nAmt: ${NairaSymbol}${returnComma(requestData.amount)} \nAcc: ${MaskNumber(String(currentUser.PhoneNumber))} \nDesc: Split payment\nBeneficiaries: ${Registeredusers.concat(UnregisteredUsers).length}\nRefNo.: ${txRef} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(balance))}`;
           SendSMS(currentUser.PhoneNumber,sms);
-          const msg = `Debit<br/>
+          const msg = `${AppName} Debit<br/>
           Amt: ${NairaSymbol}${returnComma(requestData.amount)} <br/>
           Acc: ${MaskNumber(String(currentUser.PhoneNumber))} <br/>
           RefNo.: ${txRef} <br/>
