@@ -3841,7 +3841,7 @@ const CreateSplitAccount = (data)=>{
           }
         });
       }else{
-        if(requestData.distribution == "evenly")
+        if(String(requestData.distribution).toLowerCase() == "evenly")
         {
         // select all beneficiaries
         let allBeneficiaries = String(requestData.beneficiaries).split(",");
@@ -3911,11 +3911,10 @@ const CreateSplitAccount = (data)=>{
           const eachAmount = parseFloat(requestData.amount) / parseInt(beneficiaries.length);
            if(a.exist)
           {
-          
           UpdateWalletBalance(a,eachAmount,'credit',txRef).then((bre)=>{
           console.log("bre:",bre.data.balance);
           const uBalance = bre.data.balance;
-          const sms1 = `Credit\nAmt: ${NairaSymbol}${returnComma(eachAmount)} \nAcc: ${MaskNumber(String(a.PhoneNumber))} \nDesc:${AppName} Split payment\nFrom: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber}) \nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nbalance: ${NairaSymbol}${returnComma(uBalance)}`;
+          const sms1 = `Credit\nAmt: ${NairaSymbol}${returnComma(eachAmount)} \nAcc: ${MaskNumber(String(a.PhoneNumber))} \nDesc:${AppName} Split payment\nFrom: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber})\nRefNo.: ${txRef} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nbalance: ${NairaSymbol}${returnComma(uBalance)}`;
           SendSMS(a.PhoneNumber,sms1);
           SaveTransactionHistory({
             amount:String(eachAmount),
