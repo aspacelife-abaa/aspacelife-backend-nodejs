@@ -4024,7 +4024,7 @@ const CreateSplitAccount = (data)=>{
           UpdateWalletBalance(currentUser,requestData.amount,'debit',txRef).then((upResp)=>{
           const balance = upResp.data.balance;
           // send debit sms to current user
-          const sms = `Debit\nAmt: ${NairaSymbol}${returnComma(requestData.amount)} \nAcc: ${MaskNumber(String(currentUser.PhoneNumber))} \nDesc: Split payment\nBeneficiaries: ${Registeredusers.concat(UnregisteredUsers).length} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(balance))}`;
+          const sms = `Debit\nAmt: ${NairaSymbol}${returnComma(requestData.amount)} \nAcc: ${MaskNumber(String(currentUser.PhoneNumber))} \nDesc: Split payment\nBeneficiaries: ${Registeredusers.concat(UnregisteredUsers).length}\nRefNo.: ${txRef} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(balance))}`;
           SendSMS(currentUser.PhoneNumber,sms);
           const msg = `Debit<br/>
           Amt: ${NairaSymbol}${returnComma(requestData.amount)} <br/>
