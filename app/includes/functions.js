@@ -1205,7 +1205,7 @@ const LinkAccount = (data)=>{
             customer_name:user.FirstName+" "+user.LastName,
             token:"",
             memo:`Card transaction`,
-            transaction_type:"funding",
+            transaction_type:"credit",
             beneficiary_account:String(user.PhoneNumber),
             beneficiary_bank_name:"Paystack",
             status:"success"
@@ -3841,10 +3841,11 @@ const CreateSplitAccount = (data)=>{
           }
         });
       }else{
+        if(requestData.distribution == "evenly")
+        {
         // select all beneficiaries
         let allBeneficiaries = String(requestData.beneficiaries).split(",");
         let currentUserNumberExist = allBeneficiaries.find((a)=>a == currentUser.PhoneNumber);
-        
         if(currentUserNumberExist == currentUser.PhoneNumber)
         {
         resolve({
@@ -3852,10 +3853,9 @@ const CreateSplitAccount = (data)=>{
           data:currentUserNumberExist,
           message:`Oops! your number cannot be included among beneficiaries.`
         })
-          return ;
+        return ;
         }
         let beneficiaries = allBeneficiaries.map((a,i)=>String(a)).filter((a,i)=>String(a).trim() !== "");
-        
         QueryDB(`SELECT * FROM users WHERE PhoneNumber IN ('${beneficiaries.join("','")}')`).then((beneRes)=>{
           let users = beneRes.data.map((a,i)=>{
               return {PhoneNumber:a.PhoneNumber,name:a.FirstName+" "+a.LastName}
@@ -3911,13 +3911,12 @@ const CreateSplitAccount = (data)=>{
           const eachAmount = parseFloat(requestData.amount) / parseInt(beneficiaries.length);
            if(a.exist)
           {
-          if(requestData.distribution == "evenly")
-          {
+          
           UpdateWalletBalance(a,eachAmount,'credit',txRef).then((bre)=>{
           console.log("bre:",bre.data.balance);
           const uBalance = bre.data.balance;
           const sms1 = `Credit\nAmt: ${NairaSymbol}${returnComma(eachAmount)} \nAcc: ${MaskNumber(String(a.PhoneNumber))} \nDesc:${AppName} Split payment\nFrom: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber}) \nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nbalance: ${NairaSymbol}${returnComma(uBalance)}`;
-          // SendSMS(a.PhoneNumber,sms1);
+          SendSMS(a.PhoneNumber,sms1);
           SaveTransactionHistory({
             amount:String(eachAmount),
             beneficiary_account:String(a.PhoneNumber),
@@ -3932,29 +3931,13 @@ const CreateSplitAccount = (data)=>{
             split_payment_ref:sPRef
           })
             })
-          }
-          if(requestData.distribution == "manually")
-          {
-          UpdateWalletBalance(a,eachAmount,'credit',txRef).then((bre)=>{
-          console.log("bre:",bre.data.balance);
-          const uBalance = bre.data.balance;
-          const sms1 = `Credit\nAmt: ${NairaSymbol}${returnComma(eachAmount)} \nAcc: ${MaskNumber(String(a.PhoneNumber))} \nDesc:${AppName} Split payment\nFrom: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber}) \nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nbalance: ${NairaSymbol}${returnComma(uBalance)}`;
-          SendSMS(a.PhoneNumber,sms1);
-            })
-          }
+          
           }else{
-            if(requestData.distribution == "evenly")
-          {
             // Save to base account
             const refNo = String(Md5(String(Moment().format("DDMMYYYhhmmss"))).substring(0,6)).toUpperCase();
             QueryDB(`insert into BaseAccount (transactionFrom,transactionTo,refNo,transactionStatus,transactionAmount) values('${currentUser.PhoneNumber}','${a.PhoneNumber}','${refNo}','pending','${eachAmount}')`);
             const usms = `You have a cash Pick Up of ${NairaSymbol}${returnComma(eachAmount)} \nFROM: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber})\nRefNo: ${refNo} \nYou only need your mobile number for verification.`;
             SendSMS(a.PhoneNumber,usms);
-          }
-          if(requestData.distribution == "manually")
-          {
-
-          }
         }
           })
           beneRes.data = {}
@@ -3969,12 +3952,38 @@ const CreateSplitAccount = (data)=>{
           })
       }
         })
+        }else if(requestData.distribution == "manual"){
+          let allBeneficiaries = JSON.parse(requestData.beneficiaries);
+          if(allBeneficiaries.length == 0)
+          {
+            resolve({
+              status:false,
+              data:{},
+              message:`Oops! no beneficiary found.`
+            })
+            return ;
+          }
+          let currentUserNumberExist = allBeneficiaries.find((a)=>a.PhoneNumber == currentUser.PhoneNumber);
+          if(currentUserNumberExist == currentUser.PhoneNumber)
+          {
+          resolve({
+            status:false,
+            data:currentUserNumberExist,
+            message:`Oops! your number cannot be included among beneficiaries.`
+          })
+          return ;
+          }
+        }else{
+          resolve({
+            status:false,
+            data:{},
+            message:`Oops! invalid distribution.`
+          })
+        }
       }
     }
     })
     })
-    
-    
   })
 })
   })
@@ -4081,7 +4090,7 @@ const GetSplitIndividualHistory = (data)=>{
   })
     })
   })
-  }
+}
 const PostSocialFeed = (data)=>{
     return new Promise((resolve)=>{
         AntiHacking(data).then((data)=>{
