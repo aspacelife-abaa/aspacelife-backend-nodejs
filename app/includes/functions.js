@@ -3820,6 +3820,16 @@ const CreateSplitAccount = (data)=>{
         resolve(res)
         return;
       }
+      
+      if(!String(requestData.beneficiaries).includes(","))
+      {
+        resolve({
+          status:false,
+          data:{},
+          message:"beneficiaries must be in this format (08000000000,08000000000)"
+         })
+         return ;
+      }
       const currentUser = res.data;
      GetWalletBalance(currentUser.PhoneNumber).then((re)=>{
      if(!re.status)
@@ -3861,7 +3871,6 @@ const CreateSplitAccount = (data)=>{
               return {PhoneNumber:a.PhoneNumber,name:a.FirstName+" "+a.LastName}
             })
           }
-          
           beneficiaries = allBeneficiaries.map((a,i)=>{
             const foundUser = users.find((b)=>b.PhoneNumber == a);
             if(foundUser)
@@ -3949,7 +3958,7 @@ const CreateSplitAccount = (data)=>{
         }
           })
           beneRes.data = {}
-          beneRes.message = `Split Payment was successful.`
+          beneRes.message = beneRes.status?`Split Payment was successful.`:`Split Payment was not successful.`
           resolve(beneRes)
         })
         })
