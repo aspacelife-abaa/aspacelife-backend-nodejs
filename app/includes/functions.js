@@ -3820,8 +3820,6 @@ const CreateSplitAccount = (data)=>{
         resolve(res)
         return;
       }
-      
-      
       const currentUser = res.data;
      GetWalletBalance(currentUser.PhoneNumber).then((re)=>{
       if(!re.status)
@@ -3841,9 +3839,19 @@ const CreateSplitAccount = (data)=>{
           }
         });
       }else{
-        if(String(requestData.distribution).toLowerCase() == "evenly")
+        const distribution = String(requestData.distribution).toLowerCase();
+        if(distribution == "evenly")
         {
         // select all beneficiaries
+        if(String(distribution).includes('{'))
+        {
+            resolve({
+              status:false,
+              data:{},
+              message:`Oops! no beneficiary found.`
+            })
+          return ;
+        }
         let allBeneficiaries = String(requestData.beneficiaries).split(",");
         let currentUserNumberExist = allBeneficiaries.find((a)=>a == currentUser.PhoneNumber);
         if(currentUserNumberExist == currentUser.PhoneNumber)
@@ -3888,7 +3896,14 @@ const CreateSplitAccount = (data)=>{
           // send debit sms to current user
           const sms = `Debit\nAmt: ${NairaSymbol}${returnComma(requestData.amount)} \nAcc: ${MaskNumber(String(currentUser.PhoneNumber))} \nDesc: Split payment\nBeneficiaries: ${beneficiaries.length} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(balance))}`;
           SendSMS(currentUser.PhoneNumber,sms);
-          const msg = `Debit<br/>Amt: ${NairaSymbol}${returnComma(requestData.amount)} <br/>Acc: ${MaskNumber(String(currentUser.PhoneNumber))} <br/>Desc: Split payment<br/>Beneficiaries: ${beneficiaries.length} <br/>Time:${Moment().format("DD/MM/YYYY hh:mm A")} <br/>Total Bal:${NairaSymbol}${returnComma(String(balance))}`;
+          const msg = `Debit<br/>
+          Amt: ${NairaSymbol}${returnComma(requestData.amount)} <br/>
+          Acc: ${MaskNumber(String(currentUser.PhoneNumber))} <br/>
+          RefNo.: ${txRef} <br/>
+          Desc: Split payment<br/>
+          Beneficiaries: ${beneficiaries.length} <br/>
+          Time:${Moment().format("DD/MM/YYYY hh:mm A")} <br/>
+          Total Bal:${NairaSymbol}${returnComma(String(balance))}`;
           SendEmail("Split payment",msg,currentUser);
           const sPRef = Md5(String(Moment().format("DDMMYYYhhmmss")));
           // save sender's transaction history
@@ -3951,18 +3966,19 @@ const CreateSplitAccount = (data)=>{
           })
       }
         })
-        }else if(requestData.distribution == "manual"){
-          let allBeneficiaries = JSON.parse(requestData.beneficiaries);
+        }else if(distribution == "manual"){
+         try {
+          let allBeneficiaries = JSON.parse(String(requestData.beneficiaries));
           if(allBeneficiaries.length == 0)
           {
             resolve({
               status:false,
-              data:{},
+              data:allBeneficiaries,
               message:`Oops! no beneficiary found.`
             })
             return ;
           }
-          let currentUserNumberExist = allBeneficiaries.find((a)=>a.PhoneNumber == currentUser.PhoneNumber);
+          let currentUserNumberExist = allBeneficiaries.find((a)=>String(a.number) == String(currentUser.PhoneNumber));
           if(currentUserNumberExist == currentUser.PhoneNumber)
           {
           resolve({
@@ -3972,6 +3988,111 @@ const CreateSplitAccount = (data)=>{
           })
           return ;
           }
+          var checkExit = [];
+          var allcheckValidNumber = [];
+          allBeneficiaries.forEach((a,i)=>{
+            if(checkExit.indexOf(a.number) == -1)
+            {
+              checkExit.push(a.number)
+              allcheckValidNumber.push(a)
+            }
+          })
+          allBeneficiaries = allcheckValidNumber.map((beneficiary,i)=>{
+            return {exist:true,number:beneficiary.number,amount:beneficiary.amount}
+          })
+          QueryDB(`SELECT * FROM users WHERE PhoneNumber IN ('${allBeneficiaries.map((a,i)=>a.number).join("','")}')`).then((beneRes)=>{
+          let Registeredusers = beneRes.data.map((a,i)=>{
+            const u = allBeneficiaries.find((b,i)=>b.number == a.PhoneNumber);
+            return {exist:true,PhoneNumber:a.PhoneNumber,name:a.FirstName+" "+a.LastName,amount:u.amount}
+          })
+          let checkMerchant = beneRes.data.filter((a,i)=>a.account_type == "merchant")
+          if(checkMerchant.length != 0)
+            {
+            resolve({
+              status:false,
+              data:checkMerchant.map((a,i)=>a.PhoneNumber),
+              message:`Merchant number cannot be added as beneficiary`
+            });
+            return;
+          }
+          let UnregisteredUsers = allBeneficiaries.filter((a,i)=>Registeredusers.map((a,i)=>a.PhoneNumber).indexOf(a.number) == -1).map((a,i)=>{
+            a.exist = false;
+            a.name = "Unregistered user";
+            return a;
+          })
+          const txRef = String(Md5(Moment().toISOString()))
+          UpdateWalletBalance(currentUser,requestData.amount,'debit',txRef).then((upResp)=>{
+          const balance = upResp.data.balance;
+          // send debit sms to current user
+          const sms = `Debit\nAmt: ${NairaSymbol}${returnComma(requestData.amount)} \nAcc: ${MaskNumber(String(currentUser.PhoneNumber))} \nDesc: Split payment\nBeneficiaries: ${Registeredusers.concat(UnregisteredUsers).length} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(balance))}`;
+          SendSMS(currentUser.PhoneNumber,sms);
+          const msg = `Debit<br/>
+          Amt: ${NairaSymbol}${returnComma(requestData.amount)} <br/>
+          Acc: ${MaskNumber(String(currentUser.PhoneNumber))} <br/>
+          RefNo.: ${txRef} <br/>
+          Desc: Split payment<br/>
+          Beneficiaries: ${Registeredusers.concat(UnregisteredUsers).length} <br/>
+          Time:${Moment().format("DD/MM/YYYY hh:mm A")} <br/>
+          Total Bal:${NairaSymbol}${returnComma(String(balance))}`;
+          SendEmail("Split payment",msg,currentUser);
+          const sPRef = Md5(String(Moment().format("DDMMYYYhhmmss")));
+          // save sender's transaction history
+          SaveTransactionHistory({
+                  amount:String(requestData.amount),
+                  beneficiary_account:String(currentUser.PhoneNumber),
+                  beneficiary_bank_name:"AbaaPay Wallet",
+                  customer_name:`${Registeredusers.concat(UnregisteredUsers).length} beneficiaries`,
+                  memo:`${requestData.group_name} (Split Payment)`,
+                  PhoneNumber:String(currentUser.PhoneNumber),
+                  token:"",
+                  transaction_ref:txRef,
+                  transaction_type:"debit",
+                  status:"success",
+                  split_payment_ref:sPRef
+                })
+          QueryDB(`INSERT INTO split_payment(sPRef,spAmount,spTitle, spNumberOfPaticipants,spDistributions,sPPhoneNumber) VALUES ('${sPRef}','${requestData.amount}','${requestData.group_name}','${JSON.stringify(Registeredusers.concat(UnregisteredUsers))}','${requestData.distribution}','${currentUser.PhoneNumber}')`);
+          UnregisteredUsers.forEach((a,i)=>{
+            const refNo = String(Md5(a.PhoneNumber+String(Moment().format("DDMMYYYhhmmss"))).substring(0,6)).toUpperCase();
+            QueryDB(`insert into BaseAccount (transactionFrom,transactionTo,refNo,transactionStatus,transactionAmount) values('${currentUser.PhoneNumber}','${a.number}','${refNo}','pending','${a.amount}')`);
+            const usms = `You have a cash Pick Up of ${NairaSymbol}${returnComma(a.amount)} \nFROM: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber})\nRefNo: ${refNo} \nYou only need your mobile number for verification.`;
+            SendSMS(a.number,usms);
+          })
+          Registeredusers.forEach((a,i)=>{
+            const utxRef = String(Md5(Moment().toISOString()))
+            console.log("PPPP:",a);
+            UpdateWalletBalance({PhoneNumber:a.PhoneNumber},a.amount,'credit',utxRef).then((be)=>{
+              const uBalance = be.data.balance;
+              const sms1 = `Credit\nAmt: ${NairaSymbol}${returnComma(a.amount)} \nAcc: ${MaskNumber(String(a.PhoneNumber))} \nDesc:${AppName} Split payment\nFrom: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber})\nRefNo.: ${txRef} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nbalance: ${NairaSymbol}${returnComma(uBalance)}`;
+              SendSMS(a.PhoneNumber,sms1);
+              SaveTransactionHistory({
+                amount:String(a.amount),
+                beneficiary_account:String(a.PhoneNumber),
+                beneficiary_bank_name:"AbaaPay Wallet",
+                customer_name:`${a.name}`,
+                memo:`Split Payment from ${currentUser.FirstName} ${currentUser.LastName}`,
+                PhoneNumber:String(a.PhoneNumber),
+                token:"",
+                transaction_ref:utxRef,
+                transaction_type:"credit",
+                status:"success",
+                split_payment_ref:sPRef
+              })
+              })
+            })
+        resolve({
+          status:true,
+          data:Registeredusers.concat(UnregisteredUsers),
+          message:`Split payment was successful.`
+        })
+          })
+        })
+         } catch (error) {
+          resolve({
+            status:false,
+            data:{},
+            message:`Oops! something went wrong.`
+          })
+         }
         }else{
           resolve({
             status:false,
