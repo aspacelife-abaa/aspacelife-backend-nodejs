@@ -9,8 +9,9 @@ const AntiHacking = (data)=>{
       let checkedData = data;
       let blackList = [];
       let blackListRegex = /^[\/\\,+()$~%='`"%!;-?|:*?<>{}]/g;
+      let whitelist = ["imageString"];
       Object.keys(checkedData).forEach((a,i)=>{
-        if(String(checkedData[a]).match(blackListRegex))
+        if(String(checkedData[a]).match(blackListRegex) && whitelist.indexOf(a) == -1)
         {
           blackList.push({a:checkedData[a]});
         }

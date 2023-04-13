@@ -4224,11 +4224,8 @@ const PostSocialFeed = (data)=>{
               return;
             }
         const requestData = data.data;
-        const checkList = ["token","content","title"];
-        if(requestData.imageUpload != undefined)
-        {
-          checkList.push("imageUpload");
-        }
+        const checkList = ["token","content","title","imageString"];
+        
         CheckEmptyInput(requestData,checkList).then((errorMessage)=>{
         if(errorMessage)
         {
@@ -4246,17 +4243,7 @@ const PostSocialFeed = (data)=>{
             return;
           }
          const currentUser = res.data;
-         let qry = `INSERT INTO social_feeds(sFcontent,sFtitle,`
-         if(requestData.imageUpload != undefined)
-         {
-         qry += `sFImagePath,`
-         }
-         qry += `sFPhoneNumber) VALUES ('${requestData.content}','${requestData.title}'`;
-          if(requestData.imageUpload != undefined)
-         {
-         qry += `,'${requestData.imageUpload}',`
-         }
-         qry += `'${currentUser.PhoneNumber}')`;
+         let qry = `INSERT INTO social_feeds(sFcontent,sFtitle,sFImagePath,sFPhoneNumber) VALUES ('${requestData.content}','${requestData.title}','${requestData.imageString}','${currentUser.PhoneNumber}')`;
          QueryDB(qry).then((socialRes)=>{
          if(socialRes.status)
          {
@@ -4306,15 +4293,29 @@ const GetSocialFeed = (data)=>{
               return;
             }
            const currentUser = res.data;
-           let qry = `select * from social_feeds order by rand() limit ${requestData.limit != undefined?requestData.limit:"0,50"}`;
-           QueryDB(qry).then((socialRes)=>{
-           if(socialRes.status)
-           {
-            socialRes.data = socialRes.data.map((a,i)=>{
-              return a;
+           let qry = `select * from social_feeds left join users on social_feeds.sFPhoneNumber=users.PhoneNumber order by social_feeds.sFId desc limit ${requestData.limit != undefined?requestData.limit:"0,50"}`;
+           QueryDB(qry).then((socialResP)=>{
+            socialResP.data = socialResP.data.map((a,i)=>{
+              let img = {id:null,url:null};
+              try {
+                img = JSON.parse(a.sFImagePath);
+              } catch (error) {
+                
+              }
+              return {
+                id:a.sFId,
+                content:a.sFcontent,
+                title:a.sFtitle,
+                date:a.sFDate,
+                image:img,
+                user:{
+                  mobile:a.sFPhoneNumber,
+                  name:a.FirstName+" "+a.LastName,
+                  email:a.EmailAddress
+                }
+              }
             })
-           }
-            resolve(socialRes);
+            resolve(socialResP);
            })
         })
       })
@@ -4374,12 +4375,12 @@ module.exports = {
     SplitAccountHistory,
     GetSplitIndividualHistory,
     PostSocialFeed,
+    GetSocialFeed,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,
     MerchantAcceptCash,
     MerchantRegistration,
-    GetSocialFeed,
     // admin
     AdminTransactions,
     UpdateWalletBalance

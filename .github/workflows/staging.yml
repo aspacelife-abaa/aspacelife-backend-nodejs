@@ -16,5 +16,6 @@ jobs:
         password: ${{ secrets.STAGING_PASSWORD }}
     - run: node --version
     - run: npm --version
+    - run: npm install
      
 
