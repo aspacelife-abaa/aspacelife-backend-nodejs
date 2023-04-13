@@ -3821,25 +3821,16 @@ const CreateSplitAccount = (data)=>{
         return;
       }
       
-      if(!String(requestData.beneficiaries).includes(","))
-      {
-        resolve({
-          status:false,
-          data:{},
-          message:"beneficiaries must be in this format (08000000000,08000000000)"
-         })
-         return ;
-      }
+      
       const currentUser = res.data;
      GetWalletBalance(currentUser.PhoneNumber).then((re)=>{
-     if(!re.status)
+      if(!re.status)
      {
       re.message = "Oops! account does not exist.";
       re.data = {};
       resolve(re)
-      return ;
-     }
-      const WalletData = re.data;
+     }else{
+      let WalletData = re.data;
       if(parseFloat(WalletData.balance) < parseFloat(requestData.amount))
       {
         resolve({
@@ -3853,7 +3844,8 @@ const CreateSplitAccount = (data)=>{
         // select all beneficiaries
         let allBeneficiaries = String(requestData.beneficiaries).split(",");
         let currentUserNumberExist = allBeneficiaries.find((a)=>a == currentUser.PhoneNumber);
-        if(currentUserNumberExist)
+        
+        if(currentUserNumberExist == currentUser.PhoneNumber)
         {
         resolve({
           status:false,
@@ -3863,13 +3855,20 @@ const CreateSplitAccount = (data)=>{
           return ;
         }
         let beneficiaries = allBeneficiaries.map((a,i)=>String(a)).filter((a,i)=>String(a).trim() !== "");
+        
         QueryDB(`SELECT * FROM users WHERE PhoneNumber IN ('${beneficiaries.join("','")}')`).then((beneRes)=>{
-          let users = [];
-          if(beneRes.status)
-          {
-            users = beneRes.data.map((a,i)=>{
+          let users = beneRes.data.map((a,i)=>{
               return {PhoneNumber:a.PhoneNumber,name:a.FirstName+" "+a.LastName}
             })
+          let checkMerchant = beneRes.data.filter((a,i)=>a.account_type == "merchant")
+          if(checkMerchant.length > 0)
+          {
+          resolve({
+            status:false,
+            data:checkMerchant.map((a,i)=>a.PhoneNumber),
+            message:`Merchant number cannot be added as beneficiary`
+          });
+          return;
           }
           beneficiaries = allBeneficiaries.map((a,i)=>{
             const foundUser = users.find((b)=>b.PhoneNumber == a);
@@ -3881,6 +3880,8 @@ const CreateSplitAccount = (data)=>{
             return {PhoneNumber:a,name:`Unregistered user`,exist:false}
             }
           })
+          if(beneficiaries.length != 0)
+          {
           const txRef = String(Md5(Moment().toISOString()))
           UpdateWalletBalance(currentUser,requestData.amount,'debit',txRef).then((upResp)=>{
           const balance = upResp.data.balance;
@@ -3904,9 +3905,8 @@ const CreateSplitAccount = (data)=>{
                   status:"success",
                   split_payment_ref:sPRef
                 })
-          // save to split payment table
-          
           QueryDB(`INSERT INTO split_payment(sPRef,spAmount,spTitle, spNumberOfPaticipants,spDistributions,sPPhoneNumber) VALUES ('${sPRef}','${requestData.amount}','${requestData.group_name}','${requestData.beneficiaries}','${requestData.distribution}','${currentUser.PhoneNumber}')`);
+          // save to split payment table
           beneficiaries.forEach((a)=>{
           const eachAmount = parseFloat(requestData.amount) / parseInt(beneficiaries.length);
            if(a.exist)
@@ -3917,7 +3917,7 @@ const CreateSplitAccount = (data)=>{
           console.log("bre:",bre.data.balance);
           const uBalance = bre.data.balance;
           const sms1 = `Credit\nAmt: ${NairaSymbol}${returnComma(eachAmount)} \nAcc: ${MaskNumber(String(a.PhoneNumber))} \nDesc:${AppName} Split payment\nFrom: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber}) \nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nbalance: ${NairaSymbol}${returnComma(uBalance)}`;
-          SendSMS(a.PhoneNumber,sms1);
+          // SendSMS(a.PhoneNumber,sms1);
           SaveTransactionHistory({
             amount:String(eachAmount),
             beneficiary_account:String(a.PhoneNumber),
@@ -3961,8 +3961,16 @@ const CreateSplitAccount = (data)=>{
           beneRes.message = beneRes.status?`Split Payment was successful.`:`Split Payment was not successful.`
           resolve(beneRes)
         })
+        }else{
+          resolve({
+            status:false,
+            message:"Oops! something went wrong, try again later",
+            data:{}
+          })
+      }
         })
       }
+    }
     })
     })
     
