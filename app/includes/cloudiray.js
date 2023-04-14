@@ -1,7 +1,5 @@
 const { default: Axios } = require('axios');
 require('dotenv').config();
-import {Cloudinary} from '@cloudinary/url-gen';
-
 const x = {
     api_key:process.env.CLOUDINARY_api_key,
     api_secret:process.env.CLOUDINARY_api_secret,
@@ -11,28 +9,29 @@ const x = {
 console.log(x);
 const CloudinaryCall = (params)=>{
 return new Promise((resolve)=>{
-const url = `https://api.cloudinary.com/v1_1/${x.cloudName}/image/upload`;
-let data = new FormData();
-data.append('file',params.imageString);
-// data.append('upload_preset',`${x.api_key}`);
-data.append('public_id',`social_feeds`);
-data.append('api_key',`${x.api_key}`);
-
-let config = {
-  method: 'post',
-  url:url,
-  headers: { 
-    'api_key':`${x.api_key}`,
-    'Content-Type':'application/json'
-  },
-  data:data
-};
- Axios.post(config).then((res)=>{
-            console.log(res)
+    const url = `https://api.cloudinary.com/v1_1/${x.cloud_name}/image/upload`;
+    var myHeaders = new Headers();
+    myHeaders.append("Content-Type", "application/json");
+    var requestOptions = {
+        method: 'POST',
+        headers: myHeaders,
+        body:JSON.stringify({
+            file:params.imageString,
+            upload_preset:"ml_default",
+            folder:"socials_feeds"
+        }),
+        redirect: 'follow'
+    };
+    console.log(params);
+    fetch(url,requestOptions).then(response => response.json()).then((result) => {
+            console.log(result.secure_url)
             resolve({
                 status:true,
                 message:"",
-                data:{}
+                data:{
+                    id:result.public_id,
+                    uri:result.secure_url
+                }
             })
         }).catch((res)=>{
             console.log(res)
