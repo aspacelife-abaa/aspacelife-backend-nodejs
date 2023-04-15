@@ -3252,7 +3252,7 @@ const USSD = (data)=>{
 const ForgotPassword = (data)=>{
   return new Promise((resolve)=>{
     AntiHacking(data).then((result)=>{
-      const checklist = ["new_password","verifyToken","phone_number"];
+      const checklist = ["new_password","phone_number"];
       CheckEmptyInput(result.data,checklist).then((errorMessage)=>{
           if(errorMessage)
           {
@@ -3263,12 +3263,6 @@ const ForgotPassword = (data)=>{
                 });
           }else{
             const params = result.data;
-            TokenVerification({PhoneNumber:params.phone_number,verificationToken:params.verifyToken}).then((tk)=>{
-              if(!tk.status)
-            {
-              resolve(tk);
-              return;
-            }
             NonAuthGetUserDetails({PhoneNumber:params.phone_number}).then((rse)=>{
               if(!rse.status)
               {
@@ -3287,7 +3281,6 @@ const ForgotPassword = (data)=>{
                   data:{}
                 });  
               });
-          })
         })
       }
     })
