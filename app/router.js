@@ -43,6 +43,7 @@ require("./routes/regular/split_account_history")(app);
 require("./routes/regular/get_split_payment")(app);
 require("./routes/regular/post_feeds")(app);
 require("./routes/regular/get_post_feeds")(app);
+require("./routes/regular/generate_url")(app);
 // merchant account routes
 require("./routes/merchant/account_upgrade")(app);
 require("./routes/merchant/cac_verification")(app);

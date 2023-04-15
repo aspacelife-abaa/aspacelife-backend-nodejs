@@ -85,6 +85,7 @@ const {BuyElectricityReloadly} = require('./electricity/purchase_electricty_relo
 const { USSDEventCallback } = require('./ussd/callback');
 // user login function
 const os = require("os");
+const {PaystackURL} = require('./paystack');
 
 const UserLogin = (params)=>{
     return new Promise((resolve)=>{
@@ -4322,6 +4323,55 @@ const GetSocialFeed = (data)=>{
         })
       })
       }
+const GeneratePaymentLink = (data)=>{
+        return new Promise((resolve)=>{
+            AntiHacking(data).then((data)=>{
+                if(data.error)
+                {
+                  resolve({
+                    status:false,
+                    message:`Oops try again next time.`,
+                    data:null
+                  });
+                  return;
+                }
+            const requestData = data.data;
+            const checkList = ["token","amount"];
+            CheckEmptyInput(requestData,checkList).then((errorMessage)=>{
+            if(errorMessage)
+            {
+              resolve({
+               status:false,
+               data:{},
+               message:errorMessage.toString() 
+              })
+              return ;
+            }
+            CheckAccess(requestData.token).then((res)=>{
+              if(!res.status)
+              {
+                resolve(res)
+                return;
+              }
+             const currentUser = res.data;
+             PaystackURL({
+              email:currentUser.EmailAddress,
+              amount:requestData.amount
+             }).then((res)=>{
+              if(res.data.authorization_url)
+              {
+                res.data.url = res.data.authorization_url;
+                delete res.data.authorization_url;
+                delete res.data.access_code;
+                delete res.data.reference;
+              }
+              resolve(res)
+             })
+          })
+        })
+          })
+        })
+      }
 module.exports = {
     UserLogin,
     Registration,
@@ -4376,6 +4426,7 @@ module.exports = {
     GetSplitIndividualHistory,
     PostSocialFeed,
     GetSocialFeed,
+    GeneratePaymentLink,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,
