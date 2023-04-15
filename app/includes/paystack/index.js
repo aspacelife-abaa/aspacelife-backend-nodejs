@@ -35,7 +35,7 @@ var req = https.request(options, function (res) {
 
 var postData = JSON.stringify({
   email: data.email,
-  amount: data.amount
+  amount: parseFloat(data.amount*100)
 });
 
 req.write(postData);
