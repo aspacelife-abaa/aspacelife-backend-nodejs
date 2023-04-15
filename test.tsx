@@ -1,1 +1,0 @@
-CREATE USER 'aspacel1_aspacel1'@'localhost' IDENTIFIED WITH mysql_native_password BY 'aspacel1_aspacel1';GRANT ALL PRIVILEGES ON aspacel1_aspaceDBDEV.* TO 'aspacel1_aspacel1'@'localhost';

@@ -3866,7 +3866,7 @@ const CreateSplitAccount = (data)=>{
         let beneficiaries = allBeneficiaries.map((a,i)=>String(a)).filter((a,i)=>String(a).trim() !== "");
         QueryDB(`SELECT * FROM users WHERE PhoneNumber IN ('${beneficiaries.join("','")}')`).then((beneRes)=>{
           let users = beneRes.data.map((a,i)=>{
-              return {PhoneNumber:a.PhoneNumber,name:a.FirstName+" "+a.LastName}
+              return {number:a.PhoneNumber,name:a.FirstName+" "+a.LastName}
             })
           let checkMerchant = beneRes.data.filter((a,i)=>a.account_type == "merchant")
           if(checkMerchant.length > 0)
@@ -3885,7 +3885,7 @@ const CreateSplitAccount = (data)=>{
             foundUser.name = String(foundUser.name.replace("null","")).trim();
             return {...foundUser,exist:true};
             }else{
-            return {PhoneNumber:a,name:`Unregistered user`,exist:false}
+            return {number:a,name:`Unregistered user`,exist:false}
             }
           })
           if(beneficiaries.length != 0)
@@ -4003,7 +4003,7 @@ const CreateSplitAccount = (data)=>{
           QueryDB(`SELECT * FROM users WHERE PhoneNumber IN ('${allBeneficiaries.map((a,i)=>a.number).join("','")}')`).then((beneRes)=>{
           let Registeredusers = beneRes.data.map((a,i)=>{
             const u = allBeneficiaries.find((b,i)=>b.number == a.PhoneNumber);
-            return {exist:true,PhoneNumber:a.PhoneNumber,name:a.FirstName+" "+a.LastName,amount:u.amount}
+            return {exist:true,number:a.PhoneNumber,name:a.FirstName+" "+a.LastName,amount:u.amount}
           })
           let checkMerchant = beneRes.data.filter((a,i)=>a.account_type == "merchant")
           if(checkMerchant.length != 0)
@@ -4141,10 +4141,17 @@ return new Promise((resolve)=>{
      const currentUser = res.data;
      QueryDB(`SELECT * FROM split_payment WHERE sPPhoneNumber='${currentUser.PhoneNumber}'`).then((payRes)=>{
       payRes.data = payRes.data.map((a,i)=>{
+        let numbers = a.spDistributions;
+        if(a.spDistributions == "evenly")
+        {
+          numbers = String(a.spNumberOfPaticipants).split(",");
+        }else{
+          numbers = JSON.parse(a.spNumberOfPaticipants).map((a,i)=>a.number);
+        }
         return {
           group_name:a.spTitle,
           amount:a.spAmount,
-          beneficiaries:String(a.spNumberOfPaticipants).split(","),
+          beneficiaries:numbers,
           distribution:a.spDistributions,
           date:a.spDate,
           ref:a.sPRef
