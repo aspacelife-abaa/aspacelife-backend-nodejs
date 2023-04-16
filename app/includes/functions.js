@@ -86,6 +86,7 @@ const { USSDEventCallback } = require('./ussd/callback');
 // user login function
 const os = require("os");
 const {PaystackURL} = require('./paystack');
+const { PaystackTransactionConfirmation } = require('./paystack/confirm_payment');
 
 const UserLogin = (params)=>{
     return new Promise((resolve)=>{
@@ -4363,7 +4364,73 @@ const GeneratePaymentLink = (data)=>{
                 res.data.url = res.data.authorization_url;
                 delete res.data.authorization_url;
                 delete res.data.access_code;
+                SaveTransactionHistory({
+                  amount:String(requestData.amount),
+                  beneficiary_account:String(currentUser.PhoneNumber),
+                  beneficiary_bank_name:"Wallet funding",
+                  customer_name:`${currentUser.FirstName} ${currentUser.LastName}`,
+                  memo:`Wallet funding via Paystack`,
+                  PhoneNumber:String(currentUser.PhoneNumber),
+                  token:"",
+                  transaction_ref:res.data.reference,
+                  transaction_type:"credit",
+                  status:"pending"
+                })
                 delete res.data.reference;
+              }
+              resolve(res)
+             })
+          })
+        })
+          })
+        })
+      }
+const ConfirmPayment = (data)=>{
+        return new Promise((resolve)=>{
+            AntiHacking(data).then((data)=>{
+                if(data.error)
+                {
+                  resolve({
+                    status:false,
+                    message:`Oops try again next time.`,
+                    data:null
+                  });
+                  return;
+                }
+            const requestData = data.data;
+            const checkList = ["token","transactionRef"];
+            CheckEmptyInput(requestData,checkList).then((errorMessage)=>{
+            if(errorMessage)
+            {
+              resolve({
+               status:false,
+               data:{},
+               message:errorMessage.toString() 
+              })
+              return ;
+            }
+            CheckAccess(requestData.token).then((res)=>{
+              if(!res.status)
+              {
+                resolve(res)
+                return;
+              }
+             const currentUser = res.data;
+             PaystackTransactionConfirmation(requestData.transactionRef).then((res)=>{
+              if(res.status)
+              {
+                QueryDB(`update transactions set transaction_status='${res.data.status}' where transaction_ref='${requestData.transactionRef}' limit 1`);
+                // send sms
+                UpdateWalletBalance(currentUser.PhoneNumber,requestData.amount,"credit",requestData.transactionRef).then((bal)=>{
+                 if(bal.status)
+                 {
+                const sms = `Credit \nAmt:${NairaSymbol}${returnComma(requestData.amount)} \nAcc:${MaskNumber(String(String(currentUser.PhoneNumber)))} \nDesc: wallet funding via Paystack \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(bal.data.balance)}`;
+                console.log(sms);
+                SendSMS(GetDefaultPhoneNumber(currentUser,String(currentUser.PhoneNumber)),sms);
+                // SendEmail
+                SendEmail(`${AppName} Credit alert`,sms,currentUser);
+                 }
+              })
               }
               resolve(res)
              })
@@ -4427,6 +4494,7 @@ module.exports = {
     PostSocialFeed,
     GetSocialFeed,
     GeneratePaymentLink,
+    ConfirmPayment,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,
