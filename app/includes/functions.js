@@ -4359,11 +4359,14 @@ const GeneratePaymentLink = (data)=>{
               email:currentUser.EmailAddress,
               amount:requestData.amount
              }).then((res)=>{
-              if(res.status && res.data?.authorization_url)
+              if(res.status)
               {
-                res.data.url = res.data?.authorization_url;
+                res.data.url = `${res.data.authorization_url}`;
+                if(res.data.authorization_url  != undefined)
+                {
                 delete res.data.authorization_url;
                 delete res.data.access_code;
+                }
                 SaveTransactionHistory({
                   amount:String(requestData.amount),
                   beneficiary_account:String(currentUser.PhoneNumber),
