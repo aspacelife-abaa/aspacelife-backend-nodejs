@@ -541,22 +541,14 @@ if(result.error)
   });
   return;
 }
-let checkList = ["amount","memo","transactionPIN","token","beneficiary","merchantId"];
+let checkList = ["amount","memo","transactionPIN","token","beneficiary"];
 let params = data;
-if(params.beneficiary != undefined)
-{
-  checkList = checkList.filter((a,i)=>a !== "merchantId");
-}else if(params.merchantId != undefined)
-{
-  checkList = checkList.filter((a,i)=>a !== "beneficiary");
-}
-
 CheckEmptyInput(params,checkList).then((errorMessage)=>{
   if(errorMessage)
   {
     resolve({
       status:false,
-      message:String(errorMessage).replace("beneficiary","^").replace("merchantId","^").replace("^","beneficiary or merchantId"),
+      message:errorMessage,
       data:null
     });
   }else{
@@ -564,51 +556,6 @@ CheckEmptyInput(params,checkList).then((errorMessage)=>{
     if(sender.status)
     {
       let senderData = sender.data;
-      if(params.merchantId !=  undefined)
-      {
-      GetMerchantDetails({merchantId:String(params.merchantId),token:result.data.token}).then((merchantResponse)=>{
-        if(merchantResponse.status)
-        {
-          const merchantData = merchantResponse.data;
-          if(senderData.PhoneNumber === merchantData.PhoneNumber){
-            resolve({
-              status:false,
-              message:`Oops! you cannot transfer money to your own wallet`,
-              data:null
-            });
-            return ;
-          }
-          GetWalletBalance(String(senderData.PhoneNumber)).then((senderWalletResponse)=>{
-          if(senderWalletResponse.status)
-          {
-            let senderWalletData = senderWalletResponse.data;
-            let WalletData = senderWalletData;
-            // transfer to wallet
-              delete WalletData.wallet_id;
-              delete WalletData.phone_number;
-              delete WalletData.created_at;
-            if(parseFloat(params.amount) > parseFloat(senderWalletData.balance))
-            {
-              resolve({
-                status:false,
-                message:`Insufficient balance (NGN${senderWalletData.balance})`,
-                data:data
-              });
-              return ;
-            }
-            SendMoney({sender:senderData,reciever:merchantData,amount:params.amount}).then((paymentResponse)=>{
-              resolve(paymentResponse)
-            });
-          }else{
-            resolve(senderWalletResponse);
-          }
-          })
-        }else{
-         resolve(merchantResponse);
-        }
-        })
-      }else if(params.beneficiary !=  undefined){
-        // 
         if(params.beneficiary != undefined && params.beneficiary == senderData.PhoneNumber){
           resolve({
             status:false,
@@ -660,13 +607,84 @@ CheckEmptyInput(params,checkList).then((errorMessage)=>{
            resolve(beneficiaryResponse);
           }
         })
-      }else{
-        resolve({
-          status:false,
-          message:`Oops! something went wrong try again later.`,
-          data:{}
-        });
-      }
+    }else{
+      resolve(sender);
+    }
+  })
+}
+})
+})
+})
+}
+const TransferToMerchant = (data)=>{
+  return new Promise((resolve)=>{
+  AntiHacking(data).then((result)=>{
+if(result.error)
+{
+  resolve({
+    status:false,
+    message:`Oops try again next time.`,
+    data:result.data
+  });
+  return;
+}
+let checkList = ["amount","memo","transactionPIN","token","merchantId"];
+let params = data;
+CheckEmptyInput(params,checkList).then((errorMessage)=>{
+  if(errorMessage)
+  {
+    resolve({
+      status:false,
+      message:errorMessage,
+      data:null
+    });
+  }else{
+  CheckAccess(result.data.token,result.data.transactionPIN).then((sender)=>{
+    if(sender.status)
+    {
+      let senderData = sender.data;
+      GetMerchantDetails({merchantId:String(params.merchantId),token:result.data.token}).then((merchantResponse)=>{
+       
+        if(merchantResponse.status)
+        {
+          const merchantData = merchantResponse.data;
+          if(senderData.PhoneNumber === merchantData.PhoneNumber){
+            resolve({
+              status:false,
+              message:`Oops! you cannot transfer money to your own wallet`,
+              data:null
+            });
+            return ;
+          }
+          GetWalletBalance(String(senderData.PhoneNumber)).then((senderWalletResponse)=>{
+          if(senderWalletResponse.status)
+          {
+            let senderWalletData = senderWalletResponse.data;
+            let WalletData = senderWalletData;
+            // transfer to wallet
+              delete WalletData.wallet_id;
+              delete WalletData.phone_number;
+              delete WalletData.created_at;
+            if(parseFloat(params.amount) > parseFloat(senderWalletData.balance))
+            {
+              resolve({
+                status:false,
+                message:`Insufficient balance (NGN${senderWalletData.balance})`,
+                data:data
+              });
+              return ;
+            }
+            SendMoney({sender:senderData,reciever:merchantData,amount:params.amount}).then((paymentResponse)=>{
+              resolve(paymentResponse)
+            });
+          }else{
+            resolve(senderWalletResponse);
+          }
+          })
+        }else{
+         resolve(merchantResponse);
+        }
+      })
     }else{
       resolve(sender);
     }
@@ -4503,6 +4521,7 @@ module.exports = {
     MerchantVerifyCash,
     MerchantAcceptCash,
     MerchantRegistration,
+    TransferToMerchant,
     // admin
     AdminTransactions,
     UpdateWalletBalance

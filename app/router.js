@@ -53,6 +53,7 @@ require("./routes/merchant/get_merchant_details")(app);
 require("./routes/merchant/verify_cash")(app);
 require("./routes/merchant/payout_cash")(app);
 require("./routes/merchant/merchant_registration")(app);
+require("./routes/merchant/transfer")(app);
 // admin
 require("./routes/admin/delete_upload")(app);
 require("./routes/admin/transactions")(app);
