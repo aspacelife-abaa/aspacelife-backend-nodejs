@@ -4359,9 +4359,9 @@ const GeneratePaymentLink = (data)=>{
               email:currentUser.EmailAddress,
               amount:requestData.amount
              }).then((res)=>{
-              if(res.data.authorization_url)
+              if(res.status && res?.data?.authorization_url)
               {
-                res.data.url = res.data.authorization_url;
+                res.data.url = res?.data?.authorization_url;
                 delete res.data.authorization_url;
                 delete res.data.access_code;
                 SaveTransactionHistory({
