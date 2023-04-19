@@ -4077,17 +4077,17 @@ const CreateSplitAccount = (data)=>{
           Registeredusers.forEach((a,i)=>{
             const utxRef = String(Md5(Moment().toISOString()))
             console.log("PPPP:",a);
-            UpdateWalletBalance({PhoneNumber:a.PhoneNumber},a.amount,'credit',utxRef).then((be)=>{
+            UpdateWalletBalance({PhoneNumber:a.number},a.amount,'credit',utxRef).then((be)=>{
               const uBalance = be.data.balance;
-              const sms1 = `Credit\nAmt: ${NairaSymbol}${returnComma(a.amount)} \nAcc: ${MaskNumber(String(a.PhoneNumber))} \nDesc:${AppName} Split payment\nFrom: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber})\nRefNo.: ${txRef} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nbalance: ${NairaSymbol}${returnComma(uBalance)}`;
-              SendSMS(a.PhoneNumber,sms1);
+              const sms1 = `Credit\nAmt: ${NairaSymbol}${returnComma(a.amount)} \nAcc: ${MaskNumber(String(a.number))} \nDesc:${AppName} Split payment\nFrom: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber})\nRefNo.: ${txRef} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nbalance: ${NairaSymbol}${returnComma(uBalance)}`;
+              SendSMS(a.number,sms1);
               SaveTransactionHistory({
                 amount:String(a.amount),
-                beneficiary_account:String(a.PhoneNumber),
+                beneficiary_account:String(a.number),
                 beneficiary_bank_name:"AbaaPay Wallet",
                 customer_name:`${a.name}`,
                 memo:`Split Payment from ${currentUser.FirstName} ${currentUser.LastName}`,
-                PhoneNumber:String(a.PhoneNumber),
+                PhoneNumber:String(a.number),
                 token:"",
                 transaction_ref:utxRef,
                 transaction_type:"credit",
