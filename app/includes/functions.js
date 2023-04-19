@@ -3902,7 +3902,7 @@ const CreateSplitAccount = (data)=>{
             return {number:a,name:`Unregistered user`,exist:false}
             }
           })
-          if(beneficiaries.length != 0)
+          if(beneficiaries.length !== 0)
           {
           const txRef = String(Md5(Moment().toISOString()))
           UpdateWalletBalance(currentUser,requestData.amount,'debit',txRef).then((upResp)=>{
@@ -3937,6 +3937,7 @@ const CreateSplitAccount = (data)=>{
           QueryDB(`INSERT INTO split_payment(sPRef,spAmount,spTitle, spNumberOfPaticipants,spDistributions,sPPhoneNumber) VALUES ('${sPRef}','${requestData.amount}','${requestData.group_name}','${requestData.beneficiaries}','${requestData.distribution}','${currentUser.PhoneNumber}')`);
           // save to split payment table
           beneficiaries.forEach((a)=>{
+            setTimeout(()=>{
           const eachAmount = parseFloat(requestData.amount) / parseInt(beneficiaries.length);
            if(a.exist)
           {
@@ -3961,12 +3962,14 @@ const CreateSplitAccount = (data)=>{
             })
           
           }else{
+          console.log("beneficiaries:",a)
             // Save to base account
             const refNo = String(Md5(String(Moment().format("DDMMYYYhhmmss"))).substring(0,6)).toUpperCase();
-            QueryDB(`insert into BaseAccount (transactionFrom,transactionTo,refNo,transactionStatus,transactionAmount) values('${currentUser.PhoneNumber}','${a.PhoneNumber}','${refNo}','pending','${eachAmount}')`);
+            QueryDB(`insert into BaseAccount (transactionFrom,transactionTo,refNo,transactionStatus,transactionAmount) values('${currentUser.PhoneNumber}','${a.number}','${refNo}','pending','${eachAmount}')`);
             const usms = `You have a cash Pick Up of ${NairaSymbol}${returnComma(eachAmount)} \nFROM: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber})\nRefNo: ${refNo} \nYou only need your mobile number for verification.`;
-            SendSMS(a.PhoneNumber,usms);
+            SendSMS(a.number,usms);
         }
+        },500)
           })
           beneRes.data = {}
           beneRes.message = beneRes.status?`Split Payment was successful.`:`Split Payment was not successful.`
