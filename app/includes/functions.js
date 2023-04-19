@@ -118,6 +118,7 @@ const UserLogin = (params)=>{
         delete result.data[0].Password;
         let user = result.data[0];
         user.ussd_code = "*345*10#";
+        user.VoiceFile = "";
         user.AccessToken = Md5(Moment().toISOString()+Logindata.PhoneNumber);
         result.data = user;
         result.data.PaystackPublicKey = PaystackPublickey;
@@ -572,7 +573,7 @@ CheckEmptyInput(params,checkList).then((errorMessage)=>{
             {
               resolve({
                 status:false,
-                message:`Oops! we suggest you use merchantId instead.`,
+                message:`Oops! we suggest you use the merchantId instead.`,
                 data:null
               });
             }else{
@@ -3396,7 +3397,7 @@ const MerchantVerifyCash = (data)=>{
               }
                 if(responseData.transactionStatus == 'pending')
                 {
-                  if(result.data.payout && result.data.payout == "true")
+                  if(result.data.payout && String(result.data.payout) == "true")
                   {
                   SendToken({PhoneNumber:responseData.transactionTo,token:params.token}).then((mres)=>{
                   mres.data = responseData;
