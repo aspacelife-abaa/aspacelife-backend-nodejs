@@ -13,7 +13,7 @@ let  appsetting = (req, res, next)=>{
 }
 const ErrorHandler = (Error,req, res)=>{
     res.status(Error.status || 500);
-    res.send({status:false,message:Error.message || "Internal server Error",data:{}})
+    res.send({status:false,message:Error.message || "Internal server Error",data:{}});
 }
 const ServerCalls = (req, res,next)=>{
  var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress 
