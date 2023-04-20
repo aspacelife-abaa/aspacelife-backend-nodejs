@@ -1,8 +1,8 @@
 on: push
-name: 🚀 AbaaPay staging
+name: 🚀 AbaaPay staging on Marshalsoft
 jobs:
   web-deploy:
-    name: 🎉 AbaaPay Backend Deployment
+    name: 🎉 AbaaPay Backend Deployment on Marshalsoft
     runs-on: ubuntu-latest
     steps:
     - name: 🚚 Get latest code
@@ -10,10 +10,10 @@ jobs:
     - name: 📂 Sync files
       uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       with:
-        server-dir: /staging/
-        server: ${{ secrets.STAGING_SERVER }}
-        username: ${{ secrets.STAGING_USERNAME }}
-        password: ${{ secrets.STAGING_PASSWORD }}
+        server-dir: /abaapay/
+        server: ${{ secrets.MarshalsoftSTAGING_SERVER }}
+        username: ${{ secrets.MarshalsoftSTAGING_USERNAME }}
+        password: ${{ secrets.MarshalsoftSTAGING_PASSWORD }}
     - run: node --version
     - run: npm --version
     - run: npm install
