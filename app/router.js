@@ -45,6 +45,7 @@ require("./routes/regular/post_feeds")(app);
 require("./routes/regular/get_post_feeds")(app);
 require("./routes/regular/generate_url")(app);
 require("./routes/regular/confirm_payment")(app);
+require("./routes/regular/paystack_submit_birthday")(app);
 // merchant account routes
 require("./routes/merchant/account_upgrade")(app);
 require("./routes/merchant/cac_verification")(app);
@@ -54,6 +55,7 @@ require("./routes/merchant/verify_cash")(app);
 require("./routes/merchant/payout_cash")(app);
 require("./routes/merchant/merchant_registration")(app);
 require("./routes/merchant/transfer")(app);
+
 // admin
 require("./routes/admin/delete_upload")(app);
 require("./routes/admin/transactions")(app);

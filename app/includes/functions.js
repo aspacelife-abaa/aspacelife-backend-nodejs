@@ -88,6 +88,7 @@ const os = require("os");
 const {PaystackURL} = require('./paystack');
 const { PaystackTransactionConfirmation } = require('./paystack/confirm_payment');
 const { PaystackChargeCard } = require('./paystack/charge_card');
+const { PaystackSubmitBirthday } = require('./paystack/submit_birthday');
 
 const UserLogin = (params)=>{
     return new Promise((resolve)=>{
@@ -4498,11 +4499,60 @@ const ConfirmPayment = (data)=>{
                 data:null
               });
             }else{
+              QueryDB(GetQueryString(["account_number"],{account_number:params.account_number},'select','bank',{account_number:params.account_number})).then((resp)=>{
+                if(resp.status)
+                {
+                 resolve({
+                   status:false,
+                   message:"Account already linked.",
+                   data:[]
+                 })
+                 return ;
+                }
              PaystackChargeCard({
                       account_number:params.account_number,
                       bank_code:params.bank_code,
                       EmailAddress:user.EmailAddress,
                       amount:PaymentRefundableAmount
+            }).then((res)=>{
+              resolve(res);
+          })
+        })
+          }
+        })
+      }else{
+        resolve(userData);
+      }
+      })
+      })
+      }
+      const LinkAccountSubmitBirthday = (data)=>{
+        let params = data;
+        return new Promise((resolve)=>{
+        // resolve(params)
+        // return;
+        const checklist = ["token","birthday","reference"];
+         if(params.platform !== undefined)
+         {
+          checklist.push("platform");
+         }
+        CheckEmptyInput(params,checklist).then((errorMessage)=>{
+          if(errorMessage)
+          {
+            resolve({
+              status:false,
+              message:String(errorMessage),
+              data:null
+            });
+          }else{
+        CheckAccess(params.token).then((userData)=>{
+         delete params.token;
+          if(userData.status)
+          {
+          const user = userData.data;  
+             PaystackSubmitBirthday({
+              birthday:params.birthday,
+              reference:params.reference
             }).then((res)=>{
               resolve(res);
               return ;
@@ -4556,11 +4606,11 @@ const ConfirmPayment = (data)=>{
             resolve(res);
           }
           })
+          }else{
+            resolve(userData);
           }
         })
-      }else{
-        resolve(userData);
-      }
+          }
       })
       })
       }
@@ -4620,6 +4670,7 @@ module.exports = {
     GetSocialFeed,
     GeneratePaymentLink,
     ConfirmPayment,
+    LinkAccountSubmitBirthday,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,
