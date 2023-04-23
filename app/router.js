@@ -46,6 +46,7 @@ require("./routes/regular/get_post_feeds")(app);
 require("./routes/regular/generate_url")(app);
 require("./routes/regular/confirm_payment")(app);
 require("./routes/regular/paystack_submit_birthday")(app);
+require("./routes/regular/paystack_submit_otp")(app);
 // merchant account routes
 require("./routes/merchant/account_upgrade")(app);
 require("./routes/merchant/cac_verification")(app);

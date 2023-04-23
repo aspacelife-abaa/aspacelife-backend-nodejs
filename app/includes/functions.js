@@ -89,6 +89,7 @@ const {PaystackURL} = require('./paystack');
 const { PaystackTransactionConfirmation } = require('./paystack/confirm_payment');
 const { PaystackChargeCard } = require('./paystack/charge_card');
 const { PaystackSubmitBirthday } = require('./paystack/submit_birthday');
+const { PaystackSubmitOTP } = require('./paystack/submit_otp');
 
 const UserLogin = (params)=>{
     return new Promise((resolve)=>{
@@ -4614,6 +4615,94 @@ const ConfirmPayment = (data)=>{
       })
       })
       }
+      const LinkAccountSubmitOTP = (data)=>{
+        let params = data;
+        return new Promise((resolve)=>{
+        // resolve(params)
+        // return;
+        const checklist = ["token","otp","reference"];
+         if(params.platform !== undefined)
+         {
+          checklist.push("platform");
+         }
+        CheckEmptyInput(params,checklist).then((errorMessage)=>{
+          if(errorMessage)
+          {
+            resolve({
+              status:false,
+              message:String(errorMessage),
+              data:null
+            });
+          }else{
+        CheckAccess(params.token).then((userData)=>{
+         delete params.token;
+          if(userData.status)
+          {
+          const user = userData.data; 
+          PaystackSubmitOTP({
+              otp:params.otp,
+              reference:params.reference
+            }).then((res)=>{
+              resolve(res);
+              return ;
+            if(res.status)
+            {
+            QueryDB(GetQueryString(["account_number"],{account_number:params.account_number},'select','bank',{account_number:params.account_number,phone_number:String(user.PhoneNumber)})).then((resp)=>{
+             if(resp.status)
+             {
+              resolve({
+                status:false,
+                message:"Account already linked.",
+                data:[]
+              })
+              return ;
+             }
+             QueryDB(`insert into bank (phone_number,account_number,bank_code,bank_name,txRef) values ('${user.PhoneNumber}','${params.account_number}','${params.bank_code}','${params.bank_name}','${params.txRef}')`).then((res)=>{
+              res.message = res.status?"Bank details saved":"Oops! Bank details not saved, try again later."
+              if(res.status)
+              {
+                // const pr = {
+                //   amount:String(PaymentRefundableAmount),
+                //   phone_number:params.account_number,
+                //   txRef:params.txRef,
+                //   txStatus:"pending",
+                //   token
+                // }
+                GetWalletBalance(user.PhoneNumber).then((uBalance)=>{
+                  if(uBalance.status)
+                  {
+                    const balance = parseFloat(uBalance.data.balance)+parseFloat(PaymentRefundableAmount);
+                    QueryDB(`update wallets set balance='${balance}' where phone_number='${user.PhoneNumber}' limit 1`);
+                  }
+                });
+                SaveTransactionHistory({
+                  amount:String(PaymentRefundableAmount),
+                  PhoneNumber:String(user.PhoneNumber),
+                  transaction_ref:String(params.txRef),
+                  customer_name:user.FirstName+" "+user.LastName,
+                  token:"",
+                  memo:`Card transaction`,
+                  transaction_type:"credit",
+                  beneficiary_account:String(user.PhoneNumber),
+                  beneficiary_bank_name:"Paystack",
+                  status:"success"
+                })
+              }
+              resolve(res);
+            })
+            })
+          }else{
+            resolve(res);
+          }
+          })
+          }else{
+            resolve(userData);
+          }
+        })
+          }
+      })
+      })
+      }
 module.exports = {
     UserLogin,
     Registration,
@@ -4671,6 +4760,7 @@ module.exports = {
     GeneratePaymentLink,
     ConfirmPayment,
     LinkAccountSubmitBirthday,
+    LinkAccountSubmitOTP,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,
