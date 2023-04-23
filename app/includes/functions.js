@@ -87,6 +87,7 @@ const { USSDEventCallback } = require('./ussd/callback');
 const os = require("os");
 const {PaystackURL} = require('./paystack');
 const { PaystackTransactionConfirmation } = require('./paystack/confirm_payment');
+const { PaystackChargeCard } = require('./paystack/charge_card');
 
 const UserLogin = (params)=>{
     return new Promise((resolve)=>{
@@ -857,10 +858,12 @@ const QueryDB = (q)=>{
         dbSettings = Object.assign(dbSettings,{
           port:DatabasePort,
           password:"root",
-          user:"root"
+          user:"root",
+          database:process.env.DB_database_Local
         });
       }
   console.log(q)
+  console.log("dbSettings|",dbSettings)
       
       const connection =  createConnection(dbSettings);
       connection.connect();
@@ -1258,8 +1261,15 @@ const AccountVerification = (data)=>{
         })
         return ;
       }
-    VerifyBankAccount(data).then((res)=>{
-      resolve(res);
+      CheckAccess(params.token).then((res)=>{
+        if(res.status)
+        {
+      VerifyBankAccount(data).then((res)=>{
+        resolve(res);
+      })
+    }else{
+      resolve(res)
+    }
     })
   })
   })
@@ -4464,6 +4474,96 @@ const ConfirmPayment = (data)=>{
           })
         })
       }
+
+      const LinkAccountMobile = (data)=>{
+        let params = data;
+        return new Promise((resolve)=>{
+        CheckAccess(data.token).then((userData)=>{
+         
+          if(userData.status)
+          {
+          const user = userData.data;
+         const checklist = ["account_number","bank_code","bank_name"];
+         delete params.token;
+         if(params.platform !== undefined)
+         {
+          checklist.push("platform");
+         }
+          CheckEmptyInput(params,checklist).then((errorMessage)=>{
+            if(errorMessage)
+            {
+              resolve({
+                status:false,
+                message:String(errorMessage),
+                data:null
+              });
+            }else{
+             PaystackChargeCard({
+                      account_number:params.account_number,
+                      bank_code:params.bank_code,
+                      EmailAddress:user.EmailAddress,
+                      amount:PaymentRefundableAmount
+            }).then((res)=>{
+              resolve(res);
+              return ;
+            if(res.status)
+            {
+            QueryDB(GetQueryString(["account_number"],{account_number:params.account_number},'select','bank',{account_number:params.account_number,phone_number:String(user.PhoneNumber)})).then((resp)=>{
+             if(resp.status)
+             {
+              resolve({
+                status:false,
+                message:"Account already linked.",
+                data:[]
+              })
+              return ;
+             }
+             QueryDB(`insert into bank (phone_number,account_number,bank_code,bank_name,txRef) values ('${user.PhoneNumber}','${params.account_number}','${params.bank_code}','${params.bank_name}','${params.txRef}')`).then((res)=>{
+              res.message = res.status?"Bank details saved":"Oops! Bank details not saved, try again later."
+              if(res.status)
+              {
+                // const pr = {
+                //   amount:String(PaymentRefundableAmount),
+                //   phone_number:params.account_number,
+                //   txRef:params.txRef,
+                //   txStatus:"pending",
+                //   token
+                // }
+                GetWalletBalance(user.PhoneNumber).then((uBalance)=>{
+                  if(uBalance.status)
+                  {
+                    const balance = parseFloat(uBalance.data.balance)+parseFloat(PaymentRefundableAmount);
+                    QueryDB(`update wallets set balance='${balance}' where phone_number='${user.PhoneNumber}' limit 1`);
+                  }
+                });
+                SaveTransactionHistory({
+                  amount:String(PaymentRefundableAmount),
+                  PhoneNumber:String(user.PhoneNumber),
+                  transaction_ref:String(params.txRef),
+                  customer_name:user.FirstName+" "+user.LastName,
+                  token:"",
+                  memo:`Card transaction`,
+                  transaction_type:"credit",
+                  beneficiary_account:String(user.PhoneNumber),
+                  beneficiary_bank_name:"Paystack",
+                  status:"success"
+                })
+              }
+              resolve(res);
+            })
+            })
+          }else{
+            resolve(res);
+          }
+          })
+          }
+        })
+      }else{
+        resolve(userData);
+      }
+      })
+      })
+      }
 module.exports = {
     UserLogin,
     Registration,
@@ -4526,6 +4626,7 @@ module.exports = {
     MerchantAcceptCash,
     MerchantRegistration,
     TransferToMerchant,
+    LinkAccountMobile,
     // admin
     AdminTransactions,
     UpdateWalletBalance
