@@ -1,11 +1,11 @@
 var https = require('follow-redirects').https;
 require('dotenv').config();
-const PaystackSubmitBirthday = (data)=>{
+const PaystackSubmitPIN = (data)=>{
 return new Promise((resolve)=>{
 var options = {
     'method': 'POST',
   'hostname': 'api.paystack.co',
-  'path': '/charge/submit_birthday',
+  'path': '/charge/submit_pin',
   'headers': {
     'Authorization': 'Bearer '+process.env.Paystack_Test_secretKey,
     'Content-Type': 'application/json'
@@ -19,13 +19,7 @@ var req = https.request(options, function (res) {
   });
   res.on("end", function (chunk) {
     var body = Buffer.concat(chunks);
-    let suc = JSON.parse(body.toString())
-    if(`${suc.data?.message}` != "undefined")
-    {
-      suc.message = suc.data.message;
-      suc.data = {}
-    }
-    resolve(suc)
+    resolve(JSON.parse(body.toString()))
   });
 
   res.on("error", function (error) {
@@ -38,7 +32,7 @@ var req = https.request(options, function (res) {
   });
 });
 const params = JSON.stringify({
-    birthday: `${data.birthday}`,
+    pin: `${data.pin}`,
     reference: `${data.reference}`
   })
 console.log(params);
@@ -47,4 +41,4 @@ req.end();
 })
 }
 
-module.exports = {PaystackSubmitBirthday};
+module.exports = {PaystackSubmitPIN};

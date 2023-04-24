@@ -90,6 +90,7 @@ const { PaystackTransactionConfirmation } = require('./paystack/confirm_payment'
 const { PaystackChargeCard } = require('./paystack/charge_card');
 const { PaystackSubmitBirthday } = require('./paystack/submit_birthday');
 const { PaystackSubmitOTP } = require('./paystack/submit_otp');
+const { PaystackSubmitPIN } = require('./paystack/submit_pin');
 
 const UserLogin = (params)=>{
     return new Promise((resolve)=>{
@@ -1251,8 +1252,7 @@ const LinkAccount = (data)=>{
 const AccountVerification = (data)=>{
   return new Promise((resolve)=>{
       const params = data;
-      const checkList = ["account_number","bank_code"];
-      delete params.token;
+      const checkList = ["account_number","bank_code","token"];
       CheckEmptyInput(params,checkList).then((errorMessage)=>{
       if(errorMessage)
       {
@@ -4532,7 +4532,9 @@ const ConfirmPayment = (data)=>{
         return new Promise((resolve)=>{
         // resolve(params)
         // return;
-        const checklist = ["token","birthday","reference"];
+        const checklist = ["token","birthday","reference","bank_code","bank_name",
+        "account_number",
+        "account_name"];
          if(params.platform !== undefined)
          {
           checklist.push("platform");
@@ -4620,7 +4622,7 @@ const ConfirmPayment = (data)=>{
         return new Promise((resolve)=>{
         // resolve(params)
         // return;
-        const checklist = ["token","otp","reference"];
+        const checklist = ["token","otp","reference", "bank_code","bank_name","account_number","account_name"];
          if(params.platform !== undefined)
          {
           checklist.push("platform");
@@ -4641,6 +4643,138 @@ const ConfirmPayment = (data)=>{
           const user = userData.data; 
           PaystackSubmitOTP({
               otp:params.otp,
+              reference:params.reference
+            }).then((res)=>{
+            if(res.status && res.data.id != undefined)
+            {
+              // {
+              //   "id": 2745838497,
+              //   "domain": "test",
+              //   "status": "success",
+              //   "reference": "elhjsldtmf13kuc",
+              //   "amount": 50,
+              //   "message": "madePayment",
+              //   "gateway_response": "Approved",
+              //   "paid_at": "2023-04-24T00:50:33.000Z",
+              //   "created_at": "2023-04-23T08:27:50.000Z",
+              //   "channel": "bank",
+              //   "currency": "NGN",
+              //   "ip_address": "172.31.63.190",
+              //   "metadata": "",
+              //   "log": null,
+              //   "fees": 1,
+              //   "fees_split": null,
+              //   "authorization": {
+              //       "authorization_code": "AUTH_uf8adf06c8",
+              //       "bin": "000XXX",
+              //       "last4": "X000",
+              //       "exp_month": "12",
+              //       "exp_year": "9999",
+              //       "channel": "bank",
+              //       "card_type": "",
+              //       "bank": "Zenith Bank",
+              //       "country_code": "NG",
+              //       "brand": "Zenith Emandate",
+              //       "reusable": false,
+              //       "signature": null,
+              //       "account_name": null
+              //   },
+              //   "customer": {
+              //       "id": 116021441,
+              //       "first_name": "",
+              //       "last_name": "",
+              //       "email": "test2@aspacelife.com",
+              //       "customer_code": "CUS_mwrx9bxfliv79ts",
+              //       "phone": "",
+              //       "metadata": null,
+              //       "risk_action": "default",
+              //       "international_format_phone": null
+              //   },
+              //   "plan": null,
+              //   "split": {},
+              //   "order_id": null,
+              //   "paidAt": "2023-04-24T00:50:33.000Z",
+              //   "createdAt": "2023-04-23T08:27:50.000Z",
+              //   "requested_amount": 50,
+              //   "pos_transaction_data": null,
+              //   "source": null,
+              //   "fees_breakdown": null,
+              //   "transaction_date": "2023-04-23T08:27:50.000Z",
+              //   "plan_object": {},
+              //   "subaccount": {}
+            // }
+             QueryDB(`insert into bank (phone_number,account_number,bank_code,bank_name,txRef,meta_data) values ('${user.PhoneNumber}','${params.account_number}','${params.bank_code}','${params.bank_name}','${params.reference}','${JSON.stringify(res.data)}')`).then((res)=>{
+              res.message = res.status?"Bank details saved":"Oops! Bank details not saved, try again later."
+              if(res.status)
+              {
+                // const pr = {
+                //   amount:String(PaymentRefundableAmount),
+                //   phone_number:params.account_number,
+                //   txRef:params.txRef,
+                //   txStatus:"pending",
+                //   token
+                // }
+                GetWalletBalance(user.PhoneNumber).then((uBalance)=>{
+                  if(uBalance.status)
+                  {
+                    const balance = parseFloat(uBalance.data.balance)+parseFloat(PaymentRefundableAmount);
+                    QueryDB(`update wallets set balance='${balance}' where phone_number='${user.PhoneNumber}' limit 1`);
+                  }
+                });
+                SaveTransactionHistory({
+                  amount:String(PaymentRefundableAmount),
+                  PhoneNumber:String(user.PhoneNumber),
+                  transaction_ref:String(params.txRef),
+                  customer_name:user.FirstName+" "+user.LastName,
+                  token:"",
+                  memo:`Account verification`,
+                  transaction_type:"bank",
+                  beneficiary_account:String(user.PhoneNumber),
+                  beneficiary_bank_name:"Paystack",
+                  status:"success"
+                })
+              }
+              resolve(res);
+            })
+           
+          }else{
+            resolve(res);
+          }
+          })
+          }else{
+            resolve(userData);
+          }
+        })
+          }
+      })
+      })
+      }
+      const LinkAccountSubmitPIN = (data)=>{
+        let params = data;
+        return new Promise((resolve)=>{
+        // resolve(params)
+        // return;
+        const checklist = ["token","pin","reference"];
+         if(params.platform !== undefined)
+         {
+          checklist.push("platform");
+         }
+        CheckEmptyInput(params,checklist).then((errorMessage)=>{
+          if(errorMessage)
+          {
+            resolve({
+              status:false,
+              message:String(errorMessage),
+              data:null
+            });
+          }else{
+        CheckAccess(params.token).then((userData)=>{
+         delete params.token;
+          if(userData.status)
+          {
+          const user = userData.data; 
+          PaystackSubmitPIN({
+              pin:params.pin,
               reference:params.reference
             }).then((res)=>{
               resolve(res);

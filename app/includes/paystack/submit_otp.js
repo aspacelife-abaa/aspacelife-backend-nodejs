@@ -19,7 +19,16 @@ var req = https.request(options, function (res) {
   });
   res.on("end", function (chunk) {
     var body = Buffer.concat(chunks);
-    resolve(JSON.parse(body.toString()))
+    let suc = JSON.parse(body.toString());
+    if(`${suc.data?.message}` !== "undefined")
+    {
+      suc.message = suc.data.message;
+    }
+    if(String(suc.message).includes("already"))
+    {
+      suc.data = {};
+    }
+    resolve(suc)
   });
 
   res.on("error", function (error) {
