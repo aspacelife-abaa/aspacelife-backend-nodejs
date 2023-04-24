@@ -19,13 +19,13 @@ var req = https.request(options, function (res) {
   });
   res.on("end", function (chunk) {
     var body = Buffer.concat(chunks);
-    let suc = JSON.parse(body.toString())
-    if(`${suc.data?.message}` != "undefined")
+    let suc = JSON.parse(body.toString());
+    if(`${suc.data.message}` !== "undefined")
     {
-      suc.message = suc.data?.message;
+      suc.message = suc.data.message;
       suc.data = {}
     }
-    resolve(suc)
+    resolve(suc);
   });
 
   res.on("error", function (error) {
