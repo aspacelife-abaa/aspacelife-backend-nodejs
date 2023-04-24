@@ -4895,6 +4895,7 @@ module.exports = {
     ConfirmPayment,
     LinkAccountSubmitBirthday,
     LinkAccountSubmitOTP,
+    LinkAccountSubmitPIN,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,

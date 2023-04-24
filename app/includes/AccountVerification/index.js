@@ -26,7 +26,12 @@ const VerifyBankAccount = (data)=>{
         res.on("end", function (chunk) {
           var body = Buffer.concat(chunks);
           console.log(body.toString());
-          resolve(JSON.parse(body.toString()));
+          let suc = JSON.parse(body.toString());
+          if(!suc.status)
+          {
+            suc.message = "Oops! account does not exist."
+          }
+          resolve(suc);
         });
         res.on("error", function (error) {
         console.error(error);

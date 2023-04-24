@@ -22,7 +22,7 @@ var req = https.request(options, function (res) {
     let suc = JSON.parse(body.toString())
     if(`${suc.data?.message}` != "undefined")
     {
-      suc.message = suc.data.message;
+      suc.message = suc.data?.message;
       suc.data = {}
     }
     resolve(suc)
