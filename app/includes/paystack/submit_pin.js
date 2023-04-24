@@ -18,8 +18,13 @@ var req = https.request(options, function (res) {
     chunks.push(chunk);
   });
   res.on("end", function (chunk) {
-    var body = Buffer.concat(chunks);
-    resolve(JSON.parse(body.toString()))
+    let suc = JSON.parse(body.toString());
+    if(suc.data && `${suc.data.message}` !== "undefined")
+    {
+      suc.message = suc.data.message;
+      suc.data = {}
+    }
+    resolve(suc);
   });
 
   res.on("error", function (error) {
