@@ -20,7 +20,17 @@ var req = https.request(options, function (res) {
 
   res.on("end", function (chunk) {
     var body = Buffer.concat(chunks);
-    resolve(JSON.parse(body.toString()))
+    try {
+      const srp = JSON.parse(body.toString());
+    resolve(srp)
+    } catch (error) {
+      resolve({
+        status:false,
+        message:body.toString(),
+        data:{}
+      })
+    }
+    
   });
 
   res.on("error", function (error) {
