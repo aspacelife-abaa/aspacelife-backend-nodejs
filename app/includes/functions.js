@@ -3046,7 +3046,7 @@ const NumberValidation = (data)=>{
 const PurchaseAirtime = (data)=>{
   return new Promise((resolve)=>{
     AntiHacking(data).then((result)=>{
-      CheckEmptyInput(result.data,["token","phone_number","amount","biller_name"]).then((errorMessage)=>{
+      CheckEmptyInput(result.data,["token","phone_number","amount","biller_name","transactionPIN"]).then((errorMessage)=>{
           if(errorMessage)
           {
                 resolve({
@@ -3061,7 +3061,7 @@ const PurchaseAirtime = (data)=>{
             //   data:result.data
             // });
             // return ;
-        CheckAccess(result.data.token).then((response)=>{
+        CheckAccess(result.data.token,result.data.transactionPIN).then((response)=>{
           if(response.status)
           {
         let params = result.data;
