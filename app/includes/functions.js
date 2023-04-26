@@ -4859,15 +4859,24 @@ const ConfirmPayment = (data)=>{
           if(userData.status)
           {
           const user = userData.data; 
+          if(params.contacts.includes(","))
+          {
             QueryDB(`select * from users where PhoneNumber IN ('${params.contacts.replace(/[,]/g,"','")}')`).then((resp)=>{
               if(resp.status)
               {
                 resp.data = resp.data.map((a,i)=>{
-                  return {name:a.FirstName+" "+a.LastName,email:a.EmailAddress,avatar:a?.Avatar,mobile:a.PhoneNumber,date:a.CreatedAt}
+                  return {name:a.FirstName+" "+a.LastName,email:a.EmailAddress,avatar:a.Avatar,mobile:a.PhoneNumber,date:a.CreatedAt}
                 })
               }
               resolve(resp);
             })
+          }else{
+            resolve({
+              status:false,
+              message:`Oops! wrong data supplied.`,
+              data:{}
+            })
+          }
           }else{
             resolve(userData);
           }
