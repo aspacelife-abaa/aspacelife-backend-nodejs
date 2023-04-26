@@ -818,8 +818,10 @@ const CheckAccess = (token,transactionPIN)=>{
         res.message = "Oops! Invalid transaction PIN.";
         res.status = false;
         res.data = {}
-       }
         resolve(res);
+       }else{
+        resolve(res);
+       }
       })
   }
   })
@@ -2728,7 +2730,7 @@ const GetMerchantDetails = (data)=>{
 const DataPurchase = (data)=>{
   return new Promise((resolve)=>{
   AntiHacking(data).then((result)=>{
-    let checkList = ["token","dataPlanId","network_operator","amount","phoneNumber"];
+    let checkList = ["token","dataPlanId","network_operator","amount","phoneNumber","transactionPIN"];
     let params = result.data;
     const ref = Md5(Moment().toISOString()+(generateRandomNumber(18)));
     CheckEmptyInput(params,checkList).then((errorMessage)=>{
@@ -2740,7 +2742,7 @@ const DataPurchase = (data)=>{
                 data:{}
               });
         }else{
-      CheckAccess(params.token).then((response)=>{
+      CheckAccess(result.data.token,result.data.transactionPIN).then((response)=>{
         if(response.status)
         {
           const {
