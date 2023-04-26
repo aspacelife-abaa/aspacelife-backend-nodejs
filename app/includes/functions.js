@@ -91,6 +91,7 @@ const { PaystackChargeCard } = require('./paystack/charge_card');
 const { PaystackSubmitBirthday } = require('./paystack/submit_birthday');
 const { PaystackSubmitOTP } = require('./paystack/submit_otp');
 const { PaystackSubmitPIN } = require('./paystack/submit_pin');
+const { VerifyMeterNumber } = require('./electricity/vtpass_verify_meter');
 
 const UserLogin = (params)=>{
     return new Promise((resolve)=>{
@@ -3010,7 +3011,7 @@ const GetAirtimeProviders = (data)=>{
 const NumberValidation = (data)=>{
   return new Promise((resolve)=>{
     AntiHacking(data).then((result)=>{
-      CheckEmptyInput(result.data,["token","number"]).then((errorMessage)=>{
+      CheckEmptyInput(result.data,["token","meter_number","type","serviceID"]).then((errorMessage)=>{
           if(errorMessage)
           {
                 resolve({
@@ -3022,18 +3023,22 @@ const NumberValidation = (data)=>{
         CheckAccess(result.data.token).then((response)=>{
          if(response.status)
          {
-         ValidateServiceNumber(result.data.number).then((res)=>{
-          res.data.map((a,i)=>{
-              delete  a.commission_on_fee;
-              delete  a.label_name;
-              delete  a.fee;
-              delete  a.is_airtime;
-              delete  a.country;
-              delete  a.default_commission;
-              delete  a.date_added;
-              delete  a.default_commission;
-            return a
-          })
+         VerifyMeterNumber({
+          meterNumber:result.data.meter_number,
+          type:result.data.type,
+          serviceID:"ikeja-electric"
+        }).then((res)=>{
+          // res.data.map((a,i)=>{
+          //     delete  a.commission_on_fee;
+          //     delete  a.label_name;
+          //     delete  a.fee;
+          //     delete  a.is_airtime;
+          //     delete  a.country;
+          //     delete  a.default_commission;
+          //     delete  a.date_added;
+          //     delete  a.default_commission;
+          //   return a
+          // })
           resolve(res);
          })
          }else{
@@ -4833,6 +4838,44 @@ const ConfirmPayment = (data)=>{
       })
       })
       }
+      const GetExistingContacts  = (data)=>{
+        let params = data;
+        return new Promise((resolve)=>{
+        const checklist = ["token","contacts"];
+         if(params.platform !== undefined)
+         {
+          checklist.push("platform");
+         }
+        CheckEmptyInput(params,checklist).then((errorMessage)=>{
+          if(errorMessage)
+          {
+            resolve({
+              status:false,
+              message:String(errorMessage),
+              data:null
+            });
+          }else{
+        CheckAccess(params.token).then((userData)=>{
+          if(userData.status)
+          {
+          const user = userData.data; 
+            QueryDB(`select * from users where PhoneNumber IN ('${params.contacts.replace(/[,]/g,"','")}')`).then((resp)=>{
+              if(resp.status)
+              {
+                resp.data = resp.data.map((a,i)=>{
+                  return {name:a.FirstName+" "+a.LastName,email:a.EmailAddress,avatar:a?.Avatar,mobile:a.PhoneNumber,date:a.CreatedAt}
+                })
+              }
+              resolve(resp);
+            })
+          }else{
+            resolve(userData);
+          }
+        })
+        }
+      })
+      })
+      }
 module.exports = {
     UserLogin,
     Registration,
@@ -4899,6 +4942,7 @@ module.exports = {
     MerchantRegistration,
     TransferToMerchant,
     LinkAccountMobile,
+    GetExistingContacts,
     // admin
     AdminTransactions,
     UpdateWalletBalance

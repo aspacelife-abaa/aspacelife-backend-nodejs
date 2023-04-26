@@ -48,6 +48,8 @@ require("./routes/regular/confirm_payment")(app);
 require("./routes/regular/paystack_submit_birthday")(app);
 require("./routes/regular/paystack_submit_otp")(app);
 require("./routes/regular/paystack_submit_pin")(app);
+require("./routes/regular/number_validation")(app);
+require("./routes/regular/users_exist")(app);
 // merchant account routes
 require("./routes/merchant/account_upgrade")(app);
 require("./routes/merchant/cac_verification")(app);
