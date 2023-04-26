@@ -21,22 +21,15 @@ var req = https.request(options, function (res) {
 
   res.on("end", function (chunk) {
     var body = Buffer.concat(chunks);
-    try {
-      let suc = JSON.parse(body.toString());
-      if(suc.data && `${suc.data.message}` !== "undefined")
+      const ms = body.toString();
+      let suc = {}
+      if(String(ms).includes("data"))
       {
-        suc.message = suc.data.message;
-        suc.data = {}
+        suc = JSON.parse(ms);
+        // suc.message = suc;
+        // suc.data = {}
       }
       resolve(suc); 
-    } catch (error) {
-      resolve({
-        status:false,
-        message:body.toString(),
-        data:{}
-      })
-    }
-    
   });
 
   res.on("error", function (error) {
