@@ -813,7 +813,7 @@ const CheckAccess = (token,transactionPIN)=>{
        }
        res.data = res.data[0];
        const user = res.data;
-       if(transactionPIN && EnCrypPassword(String(transactionPIN)) !== String(user.TransactionPin))
+       if(transactionPIN != undefined && EnCrypPassword(String(transactionPIN)) !== String(user.TransactionPin))
        {
         res.message = "Oops! Invalid transaction PIN.";
         res.status = false;
@@ -3055,12 +3055,6 @@ const PurchaseAirtime = (data)=>{
                   data:{}
                 });
           }else{
-            // resolve({
-            //   status:false,
-            //   message:"String(errorMessage)",
-            //   data:result.data
-            // });
-            // return ;
         CheckAccess(result.data.token,result.data.transactionPIN).then((response)=>{
           if(response.status)
           {
