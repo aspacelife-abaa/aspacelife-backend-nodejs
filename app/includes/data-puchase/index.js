@@ -1,3 +1,4 @@
+var https = require('follow-redirects').https;
 const {SMSBaseUrl,SMSFolder,SenderID,FlutterWaveTestSecret, AIRTIMENG_APIToken, isLive} = require('../config');
 const BuyData = async(data,ref)=>{
     const response = await Post(data,ref);
