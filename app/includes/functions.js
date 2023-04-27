@@ -4476,7 +4476,7 @@ const GeneratePaymentLink = (data)=>{
                         
                         QueryDB(`update transactions set transaction_status='${paystackData.status}',transaction_type='credit' where transaction_ref='${paystackData.reference}' limit 1`);
                         // send sms
-                        UpdateWalletBalance(currentUser.PhoneNumber,trx.amount,"credit",paystackData.reference).then((bal)=>{
+                        UpdateWalletBalance({PhoneNumber:currentUser.PhoneNumber},trx.amount,"credit",paystackData.reference).then((bal)=>{
                         if(bal.status)
                         {
                         const sms = `Credit \nAmt:${NairaSymbol}${returnComma(trx.amount)} \nAcc:${MaskNumber(String(String(currentUser.PhoneNumber)))} \nDesc: wallet funding via Paystack \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(bal.data.balance)}`;
