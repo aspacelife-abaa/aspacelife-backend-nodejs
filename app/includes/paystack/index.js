@@ -14,14 +14,13 @@ var options = {
 };
 var req = https.request(options, function (res) {
   var chunks = [];
-  res.on("data", function (chunk) {
+res.on("data", function (chunk) {
     chunks.push(chunk);
   });
-
-  res.on("end", function (chunk) {
+res.on("end", function (chunk) {
     var body = Buffer.concat(chunks);
     try {
-      const srp = JSON.parse(body.toString());
+    const srp = JSON.parse(body.toString());
     resolve(srp)
     } catch (error) {
       resolve({
@@ -30,10 +29,9 @@ var req = https.request(options, function (res) {
         data:{}
       })
     }
-    
   });
 
-  res.on("error", function (error) {
+res.on("error", function (error) {
     console.error(error);
     resolve({
         status:false,

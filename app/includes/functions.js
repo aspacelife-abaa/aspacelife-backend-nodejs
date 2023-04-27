@@ -4396,12 +4396,6 @@ const GeneratePaymentLink = (data)=>{
              }).then((res)=>{
               if(res.status)
               {
-                res.data.url = `${res.data.authorization_url}`;
-                if(res.data.authorization_url  != undefined)
-                {
-                delete res.data.authorization_url;
-                delete res.data.access_code;
-                }
                 SaveTransactionHistory({
                   amount:String(requestData.amount),
                   beneficiary_account:String(currentUser.PhoneNumber),
@@ -4414,70 +4408,119 @@ const GeneratePaymentLink = (data)=>{
                   transaction_type:"credit",
                   status:"pending"
                 })
-                delete res.data.reference;
-              }
-              resolve(res)
-             })
-          })
-        })
-          })
-        })
-      }
-const ConfirmPayment = (data)=>{
-        return new Promise((resolve)=>{
-            AntiHacking(data).then((data)=>{
-                if(data.error)
+                res.data.url = res.data.authorization_url;
+                if(res.data)
                 {
-                  resolve({
-                    status:false,
-                    message:`Oops try again next time.`,
-                    data:null
-                  });
-                  return;
+                  delete res.data.authorization_url;
+                  delete res.data.access_code;
+                  delete res.data.reference;
                 }
-            const requestData = data.data;
-            const checkList = ["token","transactionRef"];
-            CheckEmptyInput(requestData,checkList).then((errorMessage)=>{
-            if(errorMessage)
-            {
-              resolve({
-               status:false,
-               data:{},
-               message:errorMessage.toString() 
-              })
-              return ;
-            }
-            CheckAccess(requestData.token).then((res)=>{
-              if(!res.status)
-              {
                 resolve(res)
-                return;
+              }else{
+              resolve(res);
               }
-             const currentUser = res.data;
-             PaystackTransactionConfirmation(requestData.transactionRef).then((res)=>{
-              if(res.status)
-              {
-                QueryDB(`update transactions set transaction_status='${res.data.status}' where transaction_ref='${requestData.transactionRef}' limit 1`);
-                // send sms
-                UpdateWalletBalance(currentUser.PhoneNumber,requestData.amount,"credit",requestData.transactionRef).then((bal)=>{
-                 if(bal.status)
-                 {
-                const sms = `Credit \nAmt:${NairaSymbol}${returnComma(requestData.amount)} \nAcc:${MaskNumber(String(String(currentUser.PhoneNumber)))} \nDesc: wallet funding via Paystack \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(bal.data.balance)}`;
-                console.log(sms);
-                SendSMS(GetDefaultPhoneNumber(currentUser,String(currentUser.PhoneNumber)),sms);
-                // SendEmail
-                SendEmail(`${AppName} Credit alert`,sms,currentUser);
-                 }
-              })
-              }
-              resolve(res)
              })
           })
         })
           })
         })
       }
-
+      const ConfirmPayment = (data)=>{
+          return new Promise((resolve)=>{
+                  AntiHacking(data).then((data)=>{
+                      if(data.error)
+                      {
+                        resolve({
+                          status:false,
+                          message:`Oops try again next time.`,
+                          data:null
+                        });
+                        return;
+                      }
+                  const requestData = data.data;
+                  const checkList = ["token","transactionRef"];
+                  CheckEmptyInput(requestData,checkList).then((errorMessage)=>{
+                  if(errorMessage)
+                  {
+                    resolve({
+                    status:false,
+                    data:{},
+                    message:errorMessage.toString() 
+                    })
+                    return ;
+                  }
+                  CheckAccess(requestData.token).then((res)=>{
+                    if(!res.status)
+                    {
+                      resolve(res)
+                      return;
+                    }
+                  const currentUser = res.data;
+                  PaystackTransactionConfirmation(requestData.transactionRef).then((res)=>{
+                    if(res.status)
+                    {
+                      QueryDB(`select * from transactions where transaction_ref='${requestData.transactionRef}' limit 1`).then((rse)=>{
+                      if(rse.status)
+                      {
+                      const trx = rse.data[0];
+                      if(trx.transaction_type == 'debit')
+                        {
+                        resolve({
+                          status:true,
+                          message:`Oops! wrong transaction type.`,
+                          data:{}
+                        })
+                      }else if(trx.transaction_status == 'pending')
+                      {
+                        const paystackData = res.data;
+                        
+                        QueryDB(`update transactions set transaction_status='${paystackData.status}',transaction_type='credit' where transaction_ref='${paystackData.reference}' limit 1`);
+                        // send sms
+                        UpdateWalletBalance(currentUser.PhoneNumber,trx.amount,"credit",paystackData.reference).then((bal)=>{
+                        if(bal.status)
+                        {
+                        const sms = `Credit \nAmt:${NairaSymbol}${returnComma(trx.amount)} \nAcc:${MaskNumber(String(String(currentUser.PhoneNumber)))} \nDesc: wallet funding via Paystack \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(bal.data.balance)}`;
+                        console.log(sms);
+                        SendSMS(GetDefaultPhoneNumber(currentUser,String(currentUser.PhoneNumber)),sms);
+                        // SendEmail
+                        SendEmail(`${AppName} Credit alert`,sms,currentUser);
+                        }
+                        })
+                        resolve({
+                          status:true,
+                          message:"Transaction confirmed successfully.",
+                          data:{}
+                        });
+                      }else if(trx.transaction_status == 'success')
+                      {
+                      resolve({
+                        status:false,
+                        message:`Transaction already confirmed.`,
+                        data:{}
+                      })
+                      }else{
+                        resolve({
+                          status:false,
+                          message:`Transaction `+trx.transaction_status,
+                          data:{}
+                        }) 
+                      }
+                    }else{
+                      resolve({
+                        status:false,
+                        message:"Transaction not found."
+                      });
+                    }
+                  })
+                  }else{
+                    resolve(res);
+                  }
+                })
+              })
+            })
+          })
+        })
+      }
       const LinkAccountMobile = (data)=>{
         let params = data;
         return new Promise((resolve)=>{

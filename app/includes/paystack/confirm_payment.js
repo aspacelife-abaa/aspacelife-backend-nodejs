@@ -22,14 +22,17 @@ var req = https.request(options, function (res) {
   res.on("end", function (chunk) {
     var body = Buffer.concat(chunks);
       const ms = body.toString();
-      let suc = {}
-      if(String(ms).includes("data"))
-      {
-        suc = JSON.parse(ms);
-        // suc.message = suc;
-        // suc.data = {}
-      }
+      try {
+       let suc = JSON.parse(ms);
       resolve(suc); 
+      } catch (error) {
+        resolve({
+          status:false,
+          data:{},
+          message:"Oops! something went wrong, try again later"
+      })
+      }
+      
   });
 
   res.on("error", function (error) {
