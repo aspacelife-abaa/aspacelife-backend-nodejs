@@ -2716,7 +2716,10 @@ const GetMerchantDetails = (data)=>{
           delete  wallet.created_at;
           res.data.wallet = wallet;
         }else{
-          res.data.wallet = {};
+          res.data.wallet = {
+            wallet_id:null,
+            balance:0
+          };
         }
         resolve(res);
       })
