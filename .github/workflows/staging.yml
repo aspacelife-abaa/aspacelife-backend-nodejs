@@ -14,6 +14,6 @@ jobs:
         server: ${{ secrets.MarshalsoftSTAGING_SERVER }}
         username: ${{ secrets.MarshalsoftSTAGING_USERNAME }}
         password: ${{ secrets.MarshalsoftSTAGING_PASSWORD }}
-    - run: npm start
+    - run: node --version
      
 
