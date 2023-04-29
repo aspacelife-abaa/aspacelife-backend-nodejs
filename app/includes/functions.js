@@ -435,21 +435,11 @@ const Dashboard = (token)=>{
         response.data.wallet = res.data;
         delete response.data.wallet.created_at;
         delete response.data.wallet.phone_number;
-       }else{
-        response.data.wallet = {
-          wallet_id: null,
-          balance:"0.00"
-        };
        }
        GetMerchantDetails({token:token}).then((mch)=>{
         if(mch.status && response.data.account_type == "merchant")
         {
           response.data = {...response.data,...mch.data}
-        }else{
-          response.data.wallet = {
-            wallet_id: null,
-            balance:"0.00"
-          };
         }
         resolve(response);
       })
@@ -3906,12 +3896,13 @@ const CreateSplitAccount = (data)=>{
         return ;
         }
         let beneficiaries = allBeneficiaries.map((a,i)=>String(a)).filter((a,i)=>String(a).trim() !== "");
-        // const duplicates = beneficiaries.filter((a,i)=>beneficiaries.indexOf(a) !== i);
+        const duplicates = beneficiaries.filter((a,i)=>beneficiaries.indexOf(a) !== i);
         // beneficiaries = removeDuplicates(duplicates);
         // console.log("beneficiaries:",beneficiaries);
         // resolve({
 
         // })
+        return ;
           QueryDB(`SELECT * FROM users WHERE PhoneNumber IN ('${beneficiaries.join("','")}')`).then((beneRes)=>{
           let users = beneRes.data.map((a,i)=>{
               return {number:a.PhoneNumber,name:a.FirstName+" "+a.LastName}
