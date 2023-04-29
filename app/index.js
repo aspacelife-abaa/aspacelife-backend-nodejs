@@ -16,7 +16,7 @@ const ErrorHandler = (Error,req, res)=>{
     res.send({status:false,message:Error.message || "Internal server Error",data:{}});
 }
 const ServerCalls = (req, res,next)=>{
- var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress 
+var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress 
 next();
 }
 // const limiter = rateLimit({

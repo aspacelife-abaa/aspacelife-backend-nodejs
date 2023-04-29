@@ -445,6 +445,11 @@ const Dashboard = (token)=>{
         if(mch.status && response.data.account_type == "merchant")
         {
           response.data = {...response.data,...mch.data}
+        }else{
+          response.data.wallet = {
+            wallet_id: null,
+            balance: 0
+          };
         }
         resolve(response);
       })
@@ -3817,6 +3822,13 @@ const MerchantRegistration = (userInfo)=>{
   })
   });
 }
+const removeDuplicates = (allInputs)=>{
+  let list = [];
+  for(var i in allInputs)
+  {
+    console.log(allInputs[i])
+  }
+}
 const CreateSplitAccount = (data)=>{
   return new Promise((resolve)=>{
     AntiHacking(data).then((data)=>{
@@ -3891,7 +3903,13 @@ const CreateSplitAccount = (data)=>{
         return ;
         }
         let beneficiaries = allBeneficiaries.map((a,i)=>String(a)).filter((a,i)=>String(a).trim() !== "");
-        QueryDB(`SELECT * FROM users WHERE PhoneNumber IN ('${beneficiaries.join("','")}')`).then((beneRes)=>{
+        // const duplicates = beneficiaries.filter((a,i)=>beneficiaries.indexOf(a) !== i);
+        // beneficiaries = removeDuplicates(duplicates);
+        // console.log("beneficiaries:",beneficiaries);
+        // resolve({
+
+        // })
+          QueryDB(`SELECT * FROM users WHERE PhoneNumber IN ('${beneficiaries.join("','")}')`).then((beneRes)=>{
           let users = beneRes.data.map((a,i)=>{
               return {number:a.PhoneNumber,name:a.FirstName+" "+a.LastName}
             })
