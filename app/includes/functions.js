@@ -438,7 +438,7 @@ const Dashboard = (token)=>{
        }else{
         response.data.wallet = {
           wallet_id: null,
-          balance: 0
+          balance:"0.00"
         };
        }
        GetMerchantDetails({token:token}).then((mch)=>{
@@ -448,7 +448,7 @@ const Dashboard = (token)=>{
         }else{
           response.data.wallet = {
             wallet_id: null,
-            balance: 0
+            balance:"0.00"
           };
         }
         resolve(response);
@@ -2718,7 +2718,7 @@ const GetMerchantDetails = (data)=>{
         }else{
           res.data.wallet = {
             wallet_id:null,
-            balance:0
+            balance:"0.00"
           };
         }
         resolve(res);
