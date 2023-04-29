@@ -14,10 +14,6 @@ jobs:
         server: ${{ secrets.MarshalsoftSTAGING_SERVER }}
         username: ${{ secrets.MarshalsoftSTAGING_USERNAME }}
         password: ${{ secrets.MarshalsoftSTAGING_PASSWORD }}
-    - run: node --version
-    - run: npm --version
-    - run: npm install
-    - run: npm install nodemon -g
     - run: npm start
      
 
