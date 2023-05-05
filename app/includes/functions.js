@@ -3895,52 +3895,66 @@ const CreateSplitAccount = (data)=>{
         })
         return ;
         }
-        let beneficiaries = allBeneficiaries.map((a,i)=>String(a)).filter((a,i)=>String(a).trim() !== "");
-        const duplicates = beneficiaries.filter((a,i)=>beneficiaries.indexOf(a) !== i);
-        // // beneficiaries = removeDuplicates(duplicates);
-        // // console.log("beneficiaries:",beneficiaries);
-        // // resolve({
-
-        // // })
-        // return ;
-          QueryDB(`SELECT * FROM users WHERE PhoneNumber IN ('${beneficiaries.join("','")}')`).then((beneRes)=>{
+        const duplicates = [];
+        const getlist = [];
+        allBeneficiaries.forEach((a)=>{
+          if(!getlist.includes(a))
+          {
+            getlist.push(a)
+          }else{
+            duplicates.push(a)
+          }
+        });
+        if(duplicates.length !== 0)
+        {
+          resolve({
+            status:false,
+            data:allBeneficiaries,
+            message:`Duplicate beneficiary found (${duplicates.join(",")})`
+          });
+          return;
+        }
+          QueryDB(`SELECT * FROM users WHERE PhoneNumber IN ('${allBeneficiaries.join("','")}')`).then((beneRes)=>{
           let users = beneRes.data.map((a,i)=>{
-              return {number:a.PhoneNumber,name:a.FirstName+" "+a.LastName}
+              return {number:a.PhoneNumber,name:a.FirstName+" "+a.LastName,accountType:a.account_type,email:a.EmailAddress}
             })
-          let checkMerchant = beneRes.data.filter((a,i)=>a.account_type == "merchant")
+            
+          let checkMerchant = users.filter((a,i)=>a.accountType == "merchant")
           if(checkMerchant.length > 0)
           {
           resolve({
             status:false,
-            data:checkMerchant.map((a,i)=>a.PhoneNumber),
+            data:checkMerchant.map((a,i)=>a.number),
             message:`Merchant number cannot be added as beneficiary`
           });
           return;
           }
-          beneficiaries = allBeneficiaries.map((a,i)=>{
-            const foundUser = users.find((b)=>b.PhoneNumber == a);
+          allBeneficiaries = allBeneficiaries.map((a,i)=>{
+            const foundUser = users.find((b)=>b.number == a);
             if(foundUser)
             {
             foundUser.name = String(foundUser.name.replace("null","")).trim();
+            const txRef = String(Md5(Moment().toISOString()))
             return {...foundUser,exist:true};
             }else{
-            return {number:a,name:`Unregistered user`,exist:false}
+            return {number:a,email:null,name:`Unregistered user`,exist:false}
             }
           })
-          if(beneficiaries.length !== 0)
+          
+          if(allBeneficiaries.length !== 0)
           {
           const txRef = String(Md5(Moment().toISOString()))
           UpdateWalletBalance(currentUser,requestData.amount,'debit',txRef).then((upResp)=>{
           const balance = upResp.data.balance;
           // send debit sms to current user
-          const sms = `${AppName} Debit\nAmt: ${NairaSymbol}${returnComma(requestData.amount)} \nAcc: ${MaskNumber(String(currentUser.PhoneNumber))} \nDesc: Split payment\nBeneficiaries: ${beneficiaries.length} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(balance))}`;
+          const sms = `${AppName} Debit\nAmt: ${NairaSymbol}${returnComma(requestData.amount)} \nAcc: ${MaskNumber(String(currentUser.PhoneNumber))} \nDesc: Split payment\nBeneficiaries: ${allBeneficiaries.length} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(String(balance))}`;
           SendSMS(currentUser.PhoneNumber,sms);
           const msg = `${AppName} Debit<br/>
           Amt: ${NairaSymbol}${returnComma(requestData.amount)} <br/>
           Acc: ${MaskNumber(String(currentUser.PhoneNumber))} <br/>
           RefNo.: ${txRef} <br/>
           Desc: Split payment<br/>
-          Beneficiaries: ${beneficiaries.length} <br/>
+          Beneficiaries: ${allBeneficiaries.length} <br/>
           Time:${Moment().format("DD/MM/YYYY hh:mm A")} <br/>
           Total Bal:${NairaSymbol}${returnComma(String(balance))}`;
           SendEmail("Split payment",msg,currentUser);
@@ -3950,7 +3964,7 @@ const CreateSplitAccount = (data)=>{
                   amount:String(requestData.amount),
                   beneficiary_account:String(currentUser.PhoneNumber),
                   beneficiary_bank_name:"AbaaPay Wallet",
-                  customer_name:`${beneficiaries.length} beneficiaries`,
+                  customer_name:`${allBeneficiaries.length} beneficiaries`,
                   memo:`${requestData.group_name} (Split Payment)`,
                   PhoneNumber:String(currentUser.PhoneNumber),
                   token:"",
@@ -3961,34 +3975,34 @@ const CreateSplitAccount = (data)=>{
                 })
           QueryDB(`INSERT INTO split_payment(sPRef,spAmount,spTitle, spNumberOfPaticipants,spDistributions,sPPhoneNumber) VALUES ('${sPRef}','${requestData.amount}','${requestData.group_name}','${requestData.beneficiaries}','${requestData.distribution}','${currentUser.PhoneNumber}')`);
           // save to split payment table
-          beneficiaries.forEach((a)=>{
-            setTimeout(()=>{
-          const eachAmount = parseFloat(requestData.amount) / parseInt(beneficiaries.length);
+          allBeneficiaries.forEach((a)=>{
+          setTimeout(()=>{
+          const eachAmount = parseFloat(requestData.amount) / parseInt(allBeneficiaries.length);
            if(a.exist)
           {
-          UpdateWalletBalance(a,eachAmount,'credit',txRef).then((bre)=>{
-          console.log("bre:",bre.data.balance);
+          UpdateWalletBalance({PhoneNumber:a.number},eachAmount,'credit',txRef).then((bre)=>{
+          // console.log("bre:",bre.data.balance);
           const uBalance = bre.data.balance;
-          const sms1 = `Credit\nAmt: ${NairaSymbol}${returnComma(eachAmount)} \nAcc: ${MaskNumber(String(a.PhoneNumber))} \nDesc:${AppName} Split payment\nFrom: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber})\nRefNo.: ${txRef} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nbalance: ${NairaSymbol}${returnComma(uBalance)}`;
-          SendSMS(a.PhoneNumber,sms1);
+          const sms1 = `Credit\nAmt: ${NairaSymbol}${returnComma(eachAmount)} \nAcc: ${MaskNumber(String(a.number))} \nDesc:${AppName} Split payment\nFrom: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber})\nRefNo.: ${txRef} \nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nbalance: ${NairaSymbol}${returnComma(uBalance)}`;
           SaveTransactionHistory({
             amount:String(eachAmount),
-            beneficiary_account:String(a.PhoneNumber),
+            beneficiary_account:String(a.number),
             beneficiary_bank_name:"AbaaPay Wallet",
             customer_name:`${a.name}`,
             memo:`Split Payment from ${currentUser.FirstName} ${currentUser.LastName}`,
-            PhoneNumber:String(a.PhoneNumber),
+            PhoneNumber:String(currentUser.PhoneNumber),
             token:"",
             transaction_ref:txRef,
             transaction_type:"credit",
             status:"success",
             split_payment_ref:sPRef
           })
+          SendSMS(a.number,sms1);
+          SendEmail("Split payment",msg,{PhoneNumber:a.number,EmailAddress:a.email});
             })
-          
           }else{
-          console.log("beneficiaries:",a)
-            // Save to base account
+          // console.log("beneficiaries:",a)
+          //   // Save to base account
             const refNo = String(Md5(String(Moment().format("DDMMYYYhhmmss"))).substring(0,6)).toUpperCase();
             QueryDB(`insert into BaseAccount (transactionFrom,transactionTo,refNo,transactionStatus,transactionAmount) values('${currentUser.PhoneNumber}','${a.number}','${refNo}','pending','${eachAmount}')`);
             const usms = `You have a cash Pick Up of ${NairaSymbol}${returnComma(eachAmount)} \nFROM: ${currentUser.FirstName} ${currentUser.LastName} (${currentUser.PhoneNumber})\nRefNo: ${refNo} \nYou only need your mobile number for verification.`;
@@ -4009,7 +4023,7 @@ const CreateSplitAccount = (data)=>{
       }
         })
         }else if(distribution == "manual"){
-         try {
+          try {
           let allBeneficiaries = JSON.parse(String(requestData.beneficiaries));
           if(allBeneficiaries.length == 0)
           {
@@ -4032,16 +4046,25 @@ const CreateSplitAccount = (data)=>{
           }
           var checkExit = [];
           var allcheckValidNumber = [];
+
           allBeneficiaries.forEach((a,i)=>{
-            if(checkExit.indexOf(a.number) == -1)
+            if(!allcheckValidNumber.includes(a.number))
             {
+              allcheckValidNumber.push(a.number)
+            }else{
               checkExit.push(a.number)
-              allcheckValidNumber.push(a)
             }
           })
-          allBeneficiaries = allcheckValidNumber.map((beneficiary,i)=>{
-            return {exist:true,number:beneficiary.number,amount:beneficiary.amount}
+          if(checkExit.length != 0)
+          {
+          resolve({
+            status:false,
+            message:`Duplicate number found.`,
+            data:allcheckValidNumber
           })
+          return ;
+        }
+         
           QueryDB(`SELECT * FROM users WHERE PhoneNumber IN ('${allBeneficiaries.map((a,i)=>a.number).join("','")}')`).then((beneRes)=>{
           let Registeredusers = beneRes.data.map((a,i)=>{
             const u = allBeneficiaries.find((b,i)=>b.number == a.PhoneNumber);
@@ -4128,6 +4151,7 @@ const CreateSplitAccount = (data)=>{
         })
           })
         })
+        
          } catch (error) {
           resolve({
             status:false,
@@ -4833,8 +4857,8 @@ const GeneratePaymentLink = (data)=>{
               pin:params.pin,
               reference:params.reference
             }).then((res)=>{
-              resolve(res);
-              return ;
+              // resolve(res);
+              // return ;
             if(res.status)
             {
             QueryDB(GetQueryString(["account_number"],{account_number:params.account_number},'select','bank',{account_number:params.account_number,phone_number:String(user.PhoneNumber)})).then((resp)=>{
