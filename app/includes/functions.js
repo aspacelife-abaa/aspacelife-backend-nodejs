@@ -120,10 +120,10 @@ const UserLogin = (params)=>{
        QueryDB(`select * from users where PhoneNumber='${Logindata.PhoneNumber}' and Password='${Password}' limit 1`).then((result)=>{
        if(result.status && result.data.length !== 0)
        {
-        delete result.data[0].Password;
         let user = result.data[0];
+        delete user.Password;
+        delete user.fingerPrintData;
         user.ussd_code = "*345*10#";
-        user.VoiceFile = "";
         user.AccessToken = Md5(Moment().toISOString()+Logindata.PhoneNumber);
         result.data = user;
         result.data.PaystackPublicKey = PaystackPublickey;
@@ -3897,12 +3897,12 @@ const CreateSplitAccount = (data)=>{
         }
         let beneficiaries = allBeneficiaries.map((a,i)=>String(a)).filter((a,i)=>String(a).trim() !== "");
         const duplicates = beneficiaries.filter((a,i)=>beneficiaries.indexOf(a) !== i);
-        // beneficiaries = removeDuplicates(duplicates);
-        // console.log("beneficiaries:",beneficiaries);
-        // resolve({
+        // // beneficiaries = removeDuplicates(duplicates);
+        // // console.log("beneficiaries:",beneficiaries);
+        // // resolve({
 
-        // })
-        return ;
+        // // })
+        // return ;
           QueryDB(`SELECT * FROM users WHERE PhoneNumber IN ('${beneficiaries.join("','")}')`).then((beneRes)=>{
           let users = beneRes.data.map((a,i)=>{
               return {number:a.PhoneNumber,name:a.FirstName+" "+a.LastName}
@@ -4940,6 +4940,77 @@ const GeneratePaymentLink = (data)=>{
       })
       })
       }
+const FingerPrintLogin = (params)=>{
+  return new Promise((resolve)=>{
+    AntiHacking(params).then((data)=>{
+      if(data.error)
+      {
+        resolve({
+          status:false,
+          data:{},
+          message:'Oops! try again next time.'
+         })
+         return ;
+     } 
+     const Logindata = data.data;
+     CheckEmptyInput(Logindata,["fingerprint_data","PhoneNumber"]).then((errorMessage)=>{
+     if(errorMessage)
+    {
+      resolve({
+        status:false,
+        data:{},
+        message:errorMessage.toString()
+       })
+     } else{
+      // encrypt password
+     const fData = EnCrypPassword(Logindata.fingerprint_data);
+     QueryDB(`select * from users where PhoneNumber='${Logindata.PhoneNumber}' and fingerPrintData='${fData}' and fingerPrintDataEnable="1" limit 1`).then((result)=>{
+     if(result.status && result.data.length !== 0)
+     {
+      
+      let user = result.data[0];
+      delete user.Password;
+      delete user.fingerPrintData;
+      user.ussd_code = "*345*10#";
+      user.AccessToken = Md5(Moment().toISOString()+Logindata.PhoneNumber);
+      result.data = user;
+      result.data.PaystackPublicKey = PaystackPublickey;
+      result.message = "Login successful.";
+      // update AccessToken
+      QueryDB(GetQueryString(["AccessToken"],{AccessToken:user.AccessToken},'update','users',{PhoneNumber:data.data.PhoneNumber}));
+     // send email
+     SendEmail(`${AppName} LOG IN CONFIRMATION`,``,user);
+     createFolder(`public/fld-${user.PhoneNumber}/images`);
+     createFolder(`public/fld-${user.PhoneNumber}/documents`);
+    }else{
+      result.message = "Oops! Invalid login credentails.";
+     }
+     if(result.status && result.data.account_type == "merchant")
+     {
+      const qr = `select * from merchant_profile where PhoneNumber='${result.data.PhoneNumber}' limit 1`;
+      QueryDB(qr).then((res)=>{
+        if(res.status)
+        {
+          const merchantData = res.data[0];
+          result.data  = Object.assign(result.data,{
+            cac_number:merchantData.cac_number,
+            company_name:merchantData.company_name,
+            company_address:merchantData.company_address,
+            registration_date:merchantData.registration_date,
+            merchantId:merchantData.merchantId
+          })
+        }
+        resolve(result);
+      })
+     }else{
+     resolve(result);
+     }
+     })
+    }
+  })
+  })
+  });
+}
 module.exports = {
     UserLogin,
     Registration,
@@ -4999,6 +5070,7 @@ module.exports = {
     LinkAccountSubmitBirthday,
     LinkAccountSubmitOTP,
     LinkAccountSubmitPIN,
+    FingerPrintLogin,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,
