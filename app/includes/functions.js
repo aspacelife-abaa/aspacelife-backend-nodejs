@@ -4977,7 +4977,7 @@ const FingerPrintLogin = (params)=>{
          return ;
      } 
      const Logindata = data.data;
-     CheckEmptyInput(Logindata,["fingerprint_data","PhoneNumber"]).then((errorMessage)=>{
+     CheckEmptyInput(Logindata,["data","token"]).then((errorMessage)=>{
      if(errorMessage)
     {
       resolve({
@@ -4986,13 +4986,36 @@ const FingerPrintLogin = (params)=>{
         message:errorMessage.toString()
        })
      } else{
+      CheckAccess(Logindata.token).then((res)=>{
+        if(!res.status)
+        {
+          resolve(res);
+          return ;
+        }
       // encrypt password
-     const fData = EnCrypPassword(Logindata.fingerprint_data);
-     QueryDB(`select * from users where PhoneNumber='${Logindata.PhoneNumber}' and fingerPrintData='${fData}' and fingerPrintDataEnable="1" limit 1`).then((result)=>{
-     if(result.status && result.data.length !== 0)
+     const fData = EnCrypPassword(Logindata.data);
+     QueryDB(`select * from users where PhoneNumber='${res.data.PhoneNumber}' limit 1`).then((result)=>{
+     if(result.status )
      {
-      
       let user = result.data[0];
+      if(String(user.biometricEnabled) !== "1")
+      {
+        resolve({
+          status:false,
+          message:"Oops! Biometric not enabled.",
+          data:{}
+        })
+        return;
+      }
+      if(user.fingerPrintData !== fData)
+      {
+        resolve({
+          status:false,
+          message:"Oops! Invalid login credentails.",
+          data:{d:user.fingerPrintData,fData:fData}
+        })
+        return;
+      }
       delete user.Password;
       delete user.fingerPrintData;
       user.ussd_code = "*345*10#";
@@ -5030,8 +5053,50 @@ const FingerPrintLogin = (params)=>{
      resolve(result);
      }
      })
+    })
     }
   })
+  })
+  });
+}
+const FingerPrintEnrol = (params)=>{
+  return new Promise((resolve)=>{
+    AntiHacking(params).then((data)=>{
+     if(data.error)
+      {
+        resolve({
+          status:false,
+          data:{},
+          message:'Oops! try again next time.'
+         })
+         return ;
+     } 
+     const fingerPrintdata = data.data;
+    CheckEmptyInput(fingerPrintdata,["data","token"]).then((errorMessage)=>{
+     if(errorMessage)
+    {
+      resolve({
+        status:false,
+        data:{},
+        message:errorMessage.toString()
+       })
+     } else{
+      CheckAccess(fingerPrintdata.token).then((res)=>{
+      if(!res.status)
+      {
+        resolve(res);
+        return ;
+      }
+    // encrypt password
+    const fData = EnCrypPassword(String(fingerPrintdata.data));
+    QueryDB(`update users set fingerPrintData='${fData}', biometricEnabled='1' where PhoneNumber='${res.data.PhoneNumber}' limit 1`).then((result)=>{
+    result.message = result.status?`Finger print data saved`:`Oops! data not saved, try again later.`;
+    result.data = {};
+    resolve(result);
+    })
+    })
+    }
+    })
   })
   });
 }
@@ -5095,6 +5160,7 @@ module.exports = {
     LinkAccountSubmitOTP,
     LinkAccountSubmitPIN,
     FingerPrintLogin,
+    FingerPrintEnrol,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,
