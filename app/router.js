@@ -50,6 +50,7 @@ require("./routes/regular/paystack_submit_otp")(app);
 require("./routes/regular/paystack_submit_pin")(app);
 require("./routes/regular/number_validation")(app);
 require("./routes/regular/users_exist")(app);
+require("./routes/regular/finger_print_enrolment")(app);
 require("./routes/regular/finger_print_login")(app);
 // merchant account routes
 require("./routes/merchant/account_upgrade")(app);
