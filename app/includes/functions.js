@@ -128,6 +128,8 @@ const UserLogin = (params)=>{
         result.data = user;
         result.data.PaystackPublicKey = PaystackPublickey;
         result.message = "Login successful.";
+        result.data.privacyUrl = process.env.privacyUrl,
+        result.data.termsUrl = process.env.termsUrl,
         // update AccessToken
         QueryDB(GetQueryString(["AccessToken"],{AccessToken:user.AccessToken},'update','users',{PhoneNumber:data.data.PhoneNumber}));
        // send email
