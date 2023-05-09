@@ -52,6 +52,7 @@ require("./routes/regular/number_validation")(app);
 require("./routes/regular/users_exist")(app);
 require("./routes/regular/finger_print_enrolment")(app);
 require("./routes/regular/finger_print_login")(app);
+require("./routes/regular/remove_linked_account")(app);
 // merchant account routes
 require("./routes/merchant/account_upgrade")(app);
 require("./routes/merchant/cac_verification")(app);

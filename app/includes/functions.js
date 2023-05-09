@@ -1325,7 +1325,7 @@ const BankAccounts = (data)=>{
           delete a.EmailAddress;
           delete a.AccessToken;
           return a;
-        })
+        }).filter((a,i)=>String(a.is_active) == "1")
         resolve(resp);
       })
     }
@@ -5100,6 +5100,67 @@ const FingerPrintEnrol = (params)=>{
   })
   });
 }
+
+const RemoveLinkedAccount = (params)=>{
+  return new Promise((resolve)=>{
+    AntiHacking(params).then((data)=>{
+     if(data.error)
+      {
+        resolve({
+          status:false,
+          data:{},
+          message:'Oops! try again next time.'
+         })
+         return ;
+     } 
+     const linkeddata = data.data;
+    CheckEmptyInput(linkeddata,["id","token"]).then((errorMessage)=>{
+     if(errorMessage)
+    {
+      resolve({
+        status:false,
+        data:{},
+        message:errorMessage.toString()
+       })
+     } else{
+      CheckAccess(linkeddata.token).then((res)=>{
+      if(!res.status)
+      {
+        resolve(res);
+        return ;
+      }
+    // encrypt password
+    QueryDB(`select * from bank where id='${linkeddata.id}' and phone_number='${res.data.PhoneNumber}' limit 1`).then((result)=>{
+    if(!result.status)
+    {
+     resolve({
+      status:false,
+      message:`Oops! account does not exist.`,
+      data:{}
+     });
+    }else{
+        const bankData =  result.data[0];
+        if(String(bankData.is_active) !== "1")
+        {
+          resolve({
+            status:false,
+            message:`Oops! account does not exist.`,
+            data:{}
+           });
+          return;
+        }
+      QueryDB(`update bank set is_active='0' where id='${linkeddata.id}' and phone_number='${res.data.PhoneNumber}' limit 1`).then((result)=>{
+        result.message = result.status?`Account has been removed successfully.`:`Oops! Account not removed, try aging later.`;
+        resolve(result);
+      })
+    }
+    })
+    })
+    }
+    })
+  })
+  });
+}
 module.exports = {
     UserLogin,
     Registration,
@@ -5161,6 +5222,7 @@ module.exports = {
     LinkAccountSubmitPIN,
     FingerPrintLogin,
     FingerPrintEnrol,
+    RemoveLinkedAccount,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,
