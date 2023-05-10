@@ -5163,6 +5163,65 @@ const RemoveLinkedAccount = (params)=>{
   })
   });
 }
+const ProfileImageUpload = (params)=>{
+  return new Promise((resolve)=>{
+    AntiHacking(params).then((data)=>{
+     if(data.error)
+      {
+        resolve({
+          status:false,
+          data:{},
+          message:'Oops! try again next time.'
+         })
+         return ;
+     } 
+     const UploadData = data.data;
+     
+    CheckEmptyInput(UploadData,["image_path","token"]).then((errorMessage)=>{
+     if(errorMessage)
+    {
+      resolve({
+        status:false,
+        data:{},
+        message:errorMessage.toString()
+       })
+     } else{
+      CheckAccess(UploadData.token).then((res)=>{
+      if(!res.status)
+      {
+        resolve(res);
+        return ;
+      }
+    // encrypt password
+    SaveFiles(res.data.PhoneNumber,UploadData.image_path).then((res)=>{
+    resolve(res);
+    })
+    return ;
+    QueryDB(`update users set Avatar='${UploadData.image_path}' where phoneNumber='${res.data.PhoneNumber}' limit 1`).then((result)=>{
+    if(!result.status)
+    {
+     resolve({
+      status:false,
+      message:`Oops! account does not exist.`,
+      data:{}
+     });
+    }else{
+    // send email
+    result.message = result.status?`Profile image uploaded successfully.`:`Oops! Something went wrong, try aging later.`;
+    resolve(result);
+    }
+    })
+    })
+    }
+    })
+  })
+  });
+}
+const SaveFiles = (phoneNumber,path)=>{
+return new Promise((resolve)=>{
+  
+})
+}
 module.exports = {
     UserLogin,
     Registration,
@@ -5225,6 +5284,7 @@ module.exports = {
     FingerPrintLogin,
     FingerPrintEnrol,
     RemoveLinkedAccount,
+    ProfileImageUpload,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,
