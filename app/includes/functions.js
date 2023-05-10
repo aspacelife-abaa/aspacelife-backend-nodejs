@@ -5074,7 +5074,7 @@ const FingerPrintEnrol = (params)=>{
          return ;
      } 
      const fingerPrintdata = data.data;
-    CheckEmptyInput(fingerPrintdata,["data","token"]).then((errorMessage)=>{
+    CheckEmptyInput(fingerPrintdata,["data","status_update","token"]).then((errorMessage)=>{
      if(errorMessage)
     {
       resolve({
@@ -5091,7 +5091,7 @@ const FingerPrintEnrol = (params)=>{
       }
     // encrypt password
     const fData = EnCrypPassword(String(fingerPrintdata.data));
-    QueryDB(`update users set fingerPrintData='${fData}', biometricEnabled='1' where PhoneNumber='${res.data.PhoneNumber}' limit 1`).then((result)=>{
+    QueryDB(`update users set fingerPrintData='${fData}', biometricEnabled='${fingerPrintdata.status_update}' where PhoneNumber='${res.data.PhoneNumber}' limit 1`).then((result)=>{
     result.message = result.status?`Finger print data saved`:`Oops! data not saved, try again later.`;
     result.data = {};
     resolve(result);
