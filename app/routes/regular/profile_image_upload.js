@@ -15,9 +15,9 @@ module.exports = (app)=>{
         return ;
         }
         let extn = "";
-        if(req.file?.mimetype)
+        if(req.file)
         {
-            let extnSplt = String(req.file?.mimetype).split("/");  
+            let extnSplt = String(req.file.mimetype).split("/");  
             extn = extnSplt[extnSplt.length - 1];  
         }
         params.image_path = req.file.path+"."+extn;
