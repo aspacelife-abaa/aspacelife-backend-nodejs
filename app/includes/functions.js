@@ -5176,7 +5176,6 @@ const ProfileImageUpload = (params)=>{
          return ;
      } 
      const UploadData = data.data;
-     
     CheckEmptyInput(UploadData,["image_path","token"]).then((errorMessage)=>{
      if(errorMessage)
     {
@@ -5193,22 +5192,28 @@ const ProfileImageUpload = (params)=>{
         return ;
       }
     // encrypt password
-    SaveFiles(res.data.PhoneNumber,UploadData.image_path).then((res)=>{
-    resolve(res);
+    SaveFiles(res.data.PhoneNumber,UploadData.image_path,"profile_image").then((resp)=>{
+    if(resp.status){
+    QueryDB(`update users set Avatar='${resp.data}' where phoneNumber='${res.data.PhoneNumber}' limit 1`).then((result)=>{
+      if(!result.status)
+      {
+       resolve({
+        status:false,
+        message:`Oops! account does not exist.`,
+        data:{}
+       });
+      }else{
+      // send email
+      result.message = result.status?`Profile image uploaded successfully.`:`Oops! Something went wrong, try aging later.`;
+      resolve(result);
+      }
     })
-    return ;
-    QueryDB(`update users set Avatar='${UploadData.image_path}' where phoneNumber='${res.data.PhoneNumber}' limit 1`).then((result)=>{
-    if(!result.status)
-    {
-     resolve({
-      status:false,
-      message:`Oops! account does not exist.`,
-      data:{}
-     });
     }else{
-    // send email
-    result.message = result.status?`Profile image uploaded successfully.`:`Oops! Something went wrong, try aging later.`;
-    resolve(result);
+      resolve({
+        status:false,
+        message:`Oops! image not uploaded.`,
+        data:{}
+       });
     }
     })
     })
@@ -5217,9 +5222,36 @@ const ProfileImageUpload = (params)=>{
   })
   });
 }
-const SaveFiles = (phoneNumber,path)=>{
+const SaveFiles = (phoneNumber,path,filename)=>{
+var fs = require('fs');
+var pathName = require('path');
 return new Promise((resolve)=>{
+  var folder = pathName.dirname(path);
+  let sourceFilePath = "./"+path; 
+  let destinationFilePath = './'+String(path).replace(folder,"public/fld-"+phoneNumber+"/images"); 
   
+  let extn = "";
+  if(String(sourceFilePath).replace("./","").includes("."))
+  {
+  let splt = sourceFilePath.split(".");
+  extn = splt[splt.length - 1];
+  sourceFilePath = String(sourceFilePath).replace("."+extn,"");
+  }
+  if(filename)
+  {
+    let extract_name = String(sourceFilePath).replace(folder+"/","");
+    destinationFilePath = String(destinationFilePath).replace(extract_name.replace("./",""),filename);
+    console.log("extract_name:",extract_name,"|",destinationFilePath)
+  }
+  // resolve(destinationFilePath)
+  // return ;
+  fs.rename(sourceFilePath, destinationFilePath, (error) => {
+    if (error) {
+      resolve({status:false,message:error.message})
+    } else {
+      resolve({status:true,message:'File moved successfully!',data:String(destinationFilePath).replace("./public/","")})
+    }
+  });
 })
 }
 module.exports = {

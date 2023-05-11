@@ -14,7 +14,13 @@ module.exports = (app)=>{
         })
         return ;
         }
-        params.image_path = req.file.path;
+        let extn = "";
+        if(req.file?.mimetype)
+        {
+            let extnSplt = String(req.file?.mimetype).split("/");  
+            extn = extnSplt[extnSplt.length - 1];  
+        }
+        params.image_path = req.file.path+"."+extn;
         req.BaseFunctions.ProfileImageUpload(params).then((response)=>{
         res.json(response);
         })

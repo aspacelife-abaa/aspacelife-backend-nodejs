@@ -3,7 +3,6 @@ const cors  = require('cors');
 // const rateLimit = require('express-rate-limit');
 const app = express();
 const bodyParser = require("body-parser");
-
 require('dotenv').config();
 const port = process.env.PORT || 6001;
 let  appsetting = (req, res, next)=>{
