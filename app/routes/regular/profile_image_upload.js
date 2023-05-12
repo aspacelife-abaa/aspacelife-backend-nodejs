@@ -6,8 +6,7 @@ module.exports = (app)=>{
     app.post(`/${version}/profile_image_upload`,upload.single('image_upload'),(req, res,next) =>{
         let params = Object.assign(req.params,{token:req.headers["token"]},req.query,req.body)
         res.json(req.file)
-        return ;
-        if(!req.file)
+        if(req.file == undefined)
         {
         res.json({
             status:false,
