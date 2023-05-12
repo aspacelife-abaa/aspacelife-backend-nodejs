@@ -5254,6 +5254,69 @@ return new Promise((resolve)=>{
   });
 })
 }
+const UserVerifyCash = (data)=>{
+  return new Promise((resolve)=>{
+    AntiHacking(data).then((result)=>{
+      const checklist = ["referenceNumber","token","transactionPIN"];
+      CheckEmptyInput(result.data,checklist).then((errorMessage)=>{
+          if(errorMessage)
+          {
+                resolve({
+                  status:false,
+                  message:String(errorMessage),
+                  data:{}
+                });
+          }else{
+            const params = result.data;
+            CheckAccess(params.token,params.transactionPIN).then((response)=>{
+              if(response.status)
+            {
+              const currentUser = response.data;
+            // verify reference number
+            QueryDB(`select * from BaseAccount where refNo='${params.referenceNumber}' and (transactionFrom='${currentUser.PhoneNumber}' or transactionTo='${currentUser.PhoneNumber}' ) limit 1`).then((res)=>{
+            if(res.status)
+              {
+              const responseData = res.data[0];
+              if(String(responseData.transactionRef) !== "null")
+              {
+                resolve({
+                  status:false,
+                  message:`Oops! Funds already cashout from the system.`,
+                  data:{}
+                });
+                return;
+              }
+                if(responseData.transactionStatus == 'pending')
+                {
+                resolve({
+                  status:true,
+                  data:responseData,
+                  message:"Amount ready for cash out."
+                }); 
+                }else{
+                  resolve({
+                    status:false,
+                    message:`Oops! Funds already cashout from the system.`,
+                    dataData
+                  });
+              }
+            }else{
+              resolve({
+                status:false,
+                message:`Oops! Funds not found.`,
+                data:{}
+              });
+            }
+            })
+          }else{
+            resolve(response)
+          }
+          })
+      }
+      })
+      })
+    })
+}
 module.exports = {
     UserLogin,
     Registration,
@@ -5317,6 +5380,7 @@ module.exports = {
     FingerPrintEnrol,
     RemoveLinkedAccount,
     ProfileImageUpload,
+    UserVerifyCash,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,

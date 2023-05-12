@@ -54,6 +54,7 @@ require("./routes/regular/finger_print_enrolment")(app);
 require("./routes/regular/finger_print_login")(app);
 require("./routes/regular/remove_linked_account")(app);
 require("./routes/regular/profile_image_upload")(app);
+require("./routes/regular/user_verify_cash_pickup")(app);
 // merchant account routes
 require("./routes/merchant/account_upgrade")(app);
 require("./routes/merchant/cac_verification")(app);
