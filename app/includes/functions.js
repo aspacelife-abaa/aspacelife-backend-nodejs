@@ -4504,18 +4504,7 @@ const GeneratePaymentLinkAccount = (data)=>{
              }).then((res)=>{
               if(res.status)
               {
-                SaveTransactionHistory({
-                  amount:String(50),
-                  beneficiary_account:String(currentUser.PhoneNumber),
-                  beneficiary_bank_name:"Wallet funding",
-                  customer_name:`${currentUser.FirstName} ${currentUser.LastName}`,
-                  memo:`Wallet funding via Paystack`,
-                  PhoneNumber:String(currentUser.PhoneNumber),
-                  token:"",
-                  transaction_ref:res.data.reference,
-                  transaction_type:"credit",
-                  status:"pending"
-                })
+               
                 res.data.url = res.data.authorization_url;
                 if(res.data)
                 {
@@ -4523,7 +4512,18 @@ const GeneratePaymentLinkAccount = (data)=>{
                   delete res.data.access_code;
                   delete res.data.reference;
                 }
-                UpdateWalletBalance(currentUser,50,"credit",res.data.reference)
+                SaveTransactionHistory({
+                  amount:String(100),
+                  beneficiary_account:String(currentUser.PhoneNumber),
+                  beneficiary_bank_name:"Wallet funding",
+                  customer_name:`${currentUser.FirstName} ${currentUser.LastName}`,
+                  memo:`Account linking / Wallet funding via Paystack`,
+                  PhoneNumber:String(currentUser.PhoneNumber),
+                  token:"",
+                  transaction_ref:res.data.reference,
+                  transaction_type:"credit",
+                  status:"pending"
+                })
                 resolve(res)
               }else{
               resolve(res);
@@ -4566,8 +4566,10 @@ const ConfirmPayment = (data)=>{
                     }
                   const currentUser = res.data;
                   PaystackTransactionConfirmation(requestData.transactionRef).then((res)=>{
-                    if(res.status)
+                  if(res.status)
                     {
+                      const paystackData = res.data;
+                      
                       QueryDB(`select * from transactions where transaction_ref='${requestData.transactionRef}' limit 1`).then((rse)=>{
                       if(rse.status)
                       {
@@ -4581,10 +4583,36 @@ const ConfirmPayment = (data)=>{
                         })
                       }else if(trx.transaction_status == 'pending')
                       {
-                        const paystackData = res.data;
-                        
+                        if(paystackData?.authorization?.channel == "bank")
+                        {
+                          QueryDB(`select * from bank where account_number='${paystackData?.authorization?.bin}${paystackData?.authorization?.last4}' and bank_name='${paystackData?.authorization?.bank}' limit 1`).then((resp)=>{
+                            if(!res.status)
+                            {
+                          QueryDB(`INSERT INTO bank(
+                            phone_number, 
+                            account_number,
+                            bank_code,
+                            bank_name,
+                            txRef,
+                            account_name,
+                            meta_data,
+                            is_active
+                            ) VALUES ('${currentUser.PhoneNumber}',
+                            '${paystackData?.authorization?.bin}${paystackData?.authorization?.last4}',
+                            '${paystackData?.authorization?.authorization_code}',
+                            '${paystackData?.authorization?.bank}',
+                            '${requestData.transactionRef}',
+                            '${currentUser.FirstName} ${currentUser.LastName}',
+                            '${JSON.stringify(paystackData)}','1')`)
+                            }else{
+                             resolve({
+                              status:false,
+                              message:"Account already linked."
+                             }) 
+                            }
+                          })
+                        }
                         QueryDB(`update transactions set transaction_status='${paystackData.status}',transaction_type='credit' where transaction_ref='${paystackData.reference}' limit 1`);
-                        // send sms
                         UpdateWalletBalance({PhoneNumber:currentUser.PhoneNumber},trx.amount,"credit",paystackData.reference).then((bal)=>{
                         if(bal.status)
                         {
