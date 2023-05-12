@@ -5,6 +5,8 @@ const upload = multer({ dest: 'uploads/'})
 module.exports = (app)=>{
     app.post(`/${version}/profile_image_upload`,upload.single('image_upload'),(req, res,next) =>{
         let params = Object.assign(req.params,{token:req.headers["token"]},req.query,req.body)
+        res.json(params)
+        return ;
         if(!req.file)
         {
         res.json({
