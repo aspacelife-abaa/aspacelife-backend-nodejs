@@ -4410,7 +4410,7 @@ const GeneratePaymentLink = (data)=>{
                   return;
                 }
             const requestData = data.data;
-            const checkList = ["token","amount"];
+            const checkList = ["token","amount","channel"];
             CheckEmptyInput(requestData,checkList).then((errorMessage)=>{
             if(errorMessage)
             {
@@ -4430,7 +4430,8 @@ const GeneratePaymentLink = (data)=>{
              const currentUser = res.data;
              PaystackURL({
               email:currentUser.EmailAddress,
-              amount:requestData.amount
+              amount:requestData.amount,
+              channel:requestData.channel
              }).then((res)=>{
               if(res.status)
               {

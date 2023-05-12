@@ -43,7 +43,8 @@ res.on("error", function (error) {
 
 var postData = JSON.stringify({
   email: data.email,
-  amount: parseFloat(data.amount*100)
+  amount: parseFloat(data.amount*100),
+  channels:[String(data.channel)],
 });
 
 req.write(postData);
