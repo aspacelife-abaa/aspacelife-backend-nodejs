@@ -4464,7 +4464,77 @@ const GeneratePaymentLink = (data)=>{
           })
         })
       }
-      const ConfirmPayment = (data)=>{
+      
+const GeneratePaymentLinkAccount = (data)=>{
+        return new Promise((resolve)=>{
+            AntiHacking(data).then((data)=>{
+                if(data.error)
+                {
+                  resolve({
+                    status:false,
+                    message:`Oops try again next time.`,
+                    data:null
+                  });
+                  return;
+                }
+            const requestData = data.data;
+            const checkList = ["token"];
+            CheckEmptyInput(requestData,checkList).then((errorMessage)=>{
+            if(errorMessage)
+            {
+              resolve({
+               status:false,
+               data:{},
+               message:errorMessage.toString() 
+              })
+              return ;
+            }
+            CheckAccess(requestData.token).then((res)=>{
+              if(!res.status)
+              {
+                resolve(res)
+                return;
+              }
+             const currentUser = res.data;
+             const txRef = generateRandomNumber(30)
+             PaystackURL({
+              email:currentUser.EmailAddress,
+              amount:100,
+              channel:"bank"
+             }).then((res)=>{
+              if(res.status)
+              {
+                SaveTransactionHistory({
+                  amount:String(50),
+                  beneficiary_account:String(currentUser.PhoneNumber),
+                  beneficiary_bank_name:"Wallet funding",
+                  customer_name:`${currentUser.FirstName} ${currentUser.LastName}`,
+                  memo:`Wallet funding via Paystack`,
+                  PhoneNumber:String(currentUser.PhoneNumber),
+                  token:"",
+                  transaction_ref:res.data.reference,
+                  transaction_type:"credit",
+                  status:"pending"
+                })
+                res.data.url = res.data.authorization_url;
+                if(res.data)
+                {
+                  delete res.data.authorization_url;
+                  delete res.data.access_code;
+                  delete res.data.reference;
+                }
+                UpdateWalletBalance(currentUser,50,"credit",res.data.reference)
+                resolve(res)
+              }else{
+              resolve(res);
+              }
+             })
+          })
+        })
+          })
+        })
+      }
+const ConfirmPayment = (data)=>{
           return new Promise((resolve)=>{
                   AntiHacking(data).then((data)=>{
                       if(data.error)
@@ -5382,6 +5452,7 @@ module.exports = {
     RemoveLinkedAccount,
     ProfileImageUpload,
     UserVerifyCash,
+    GeneratePaymentLinkAccount,
     // merchant
     GetMerchantDetails,
     MerchantVerifyCash,

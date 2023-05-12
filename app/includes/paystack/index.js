@@ -42,13 +42,12 @@ res.on("error", function (error) {
 });
 
 var postData = JSON.stringify({
-  email: data.email,
-  amount: parseFloat(data.amount*100),
-  channels:[String(data.channel)],
+  email:data.email,
+  amount:parseFloat(data.amount*100),
+  channels:[data.channel],
 });
-
+console.log("postData:",postData)
 req.write(postData);
-
 req.end();
 })
 }
