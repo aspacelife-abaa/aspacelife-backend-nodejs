@@ -1025,8 +1025,14 @@ const GetTransactionHistory = (data) => {
       }
       let checkList = ["token"];
       let params = data;
+      let limit = "0,50";
       if (params.PhoneNumber != undefined) {
         checkList.push("PhoneNumber");
+      }
+      if(params.limit)
+      {
+        checkList.push("limit");
+        limit = params.limit;
       }
       CheckEmptyInput(params, checkList).then((errorMessage) => {
         if (errorMessage) {
@@ -1039,11 +1045,7 @@ const GetTransactionHistory = (data) => {
           CheckAccess(result.data.token).then((sender) => {
             if (sender.status) {
               let currentuser = sender.data;
-              let limit = "0,50";
               let query = `select * from transactions where PhoneNumber='${currentuser.PhoneNumber}' order by transaction_id desc limit ${limit}  `;;
-              if (data.limit) {
-                limit = data.limit;
-              }
               if (params.PhoneNumber != undefined) {
                 query = `select * from transactions where PhoneNumber='${params.PhoneNumber}' order by transaction_id desc limit ${limit}  `;
               }
