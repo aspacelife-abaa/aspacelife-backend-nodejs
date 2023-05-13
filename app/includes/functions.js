@@ -151,6 +151,7 @@ const {
 const {
   VerifyMeterNumber
 } = require('./electricity/vtpass_verify_meter');
+const { sha512 } = require('js-sha512');
 
 const UserLogin = (params) => {
   return new Promise((resolve) => {
@@ -179,10 +180,11 @@ const UserLogin = (params) => {
               let user = result.data[0];
               delete user.Password;
               delete user.fingerPrintData;
+              delete user.TransactionPin;
               user.ussd_code = "*345*10#";
-              user.AccessToken = Md5(Moment().toISOString() + Logindata.PhoneNumber);
+              user.AccessToken = sha512(Moment().toISOString() + Logindata.PhoneNumber);
+              user.PaystackPublicKey = PaystackPublickey;
               result.data = user;
-              result.data.PaystackPublicKey = PaystackPublickey;
               result.message = "Login successful.";
               result.data.privacyUrl = process.env.privacyUrl,
                 result.data.termsUrl = process.env.termsUrl,
