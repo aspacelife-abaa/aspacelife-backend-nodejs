@@ -1,5 +1,6 @@
 const {version} = require('../../includes/config');
 const { SendEmail } = require('../../includes/email');
+const { SendPush } = require('../../includes/firebase/push');
 const { GeneratePDF } = require('../../includes/pdf/generate_pdf');
 const { AntiHacking } = require('../../includes/security');
 const { SendSMS } = require('../../includes/sms');
@@ -12,9 +13,15 @@ module.exports = (app)=>{
         //     res.json(resp) 
         // })
     //  SendSMS("08161235924","Your token xxxx xxxx is").then((ress)=>{
-     res.json({
-        tsau:"spsppsp"
-     });
+     SendPush({
+        to:"fYMS3v2wSCqciVZNlCPYqB:APA91bHYaTV0_0s9LvQ9GgMSr0sSkKfF30IhszMrmU1wqKwIKk3Asuac_1ltQoG4bO9_vDEtZKZzOWUXfO3XvOVutMNn-aapIKDRvYcjRaWmdH6y-vaDqNVNF_qcVbvMF3DQ2RcAAqbX",
+        data:{
+            title:"Welcome",
+            body:"This is a test message"
+        }
+     }).then((resp)=>{
+    res.json(resp);
+    })
     // })
     // GeneratePDF("").then((ress)=>{
     //  res.json(ress); 

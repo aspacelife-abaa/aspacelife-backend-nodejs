@@ -165,7 +165,7 @@ const UserLogin = (params) => {
         return;
       }
       const Logindata = data.data;
-      CheckEmptyInput(Logindata, ["Password", "PhoneNumber"]).then((errorMessage) => {
+      CheckEmptyInput(Logindata, ["Password", "PhoneNumber","fcmtoken"]).then((errorMessage) => {
         if (errorMessage) {
           resolve({
             status: false,
