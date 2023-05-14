@@ -189,10 +189,11 @@ const UserLogin = (params) => {
               result.data.privacyUrl = process.env.privacyUrl,
                 result.data.termsUrl = process.env.termsUrl,
                 // update AccessToken
-                QueryDB(GetQueryString(["AccessToken"], {
-                  AccessToken: user.AccessToken
+                QueryDB(GetQueryString(["AccessToken","PushToken"], {
+                  AccessToken: user.AccessToken,
+                  PushToken:Logindata.fcmtoken
                 }, 'update', 'users', {
-                  PhoneNumber: data.data.PhoneNumber
+                  PhoneNumber: data.data.PhoneNumber,
                 }));
               // send email
               SendEmail(`${AppName} LOG IN CONFIRMATION`, ``, user);
