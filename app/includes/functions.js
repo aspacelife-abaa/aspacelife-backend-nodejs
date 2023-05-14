@@ -189,12 +189,7 @@ const UserLogin = (params) => {
               result.data.privacyUrl = process.env.privacyUrl,
                 result.data.termsUrl = process.env.termsUrl,
                 // update AccessToken
-                QueryDB(GetQueryString(["AccessToken","PushToken"], {
-                  AccessToken: user.AccessToken,
-                  PushToken:Logindata.fcmtoken
-                }, 'update', 'users', {
-                  PhoneNumber: data.data.PhoneNumber,
-                }));
+              QueryDB(`update users set AccessToken='${user.AccessToken}',PushToken='${Logindata.fcmtoken}' where PhoneNumber='${user.PhoneNumber}' limit 1 `)
               // send email
               SendEmail(`${AppName} LOG IN CONFIRMATION`, ``, user);
               createFolder(`public/fld-${user.PhoneNumber}/images`);
