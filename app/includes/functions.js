@@ -1205,7 +1205,7 @@ const SendToken = (data) => {
       QueryDB(`select * from tokens where PhoneNumber='${params.PhoneNumber}' limit 1`).then((res) => {
         QueryDB(!res.status ? `insert into tokens (verificationToken,PhoneNumber) values ('${pin}','${params.PhoneNumber}')` : `update tokens set verificationToken='${pin}' where PhoneNumber='${params.PhoneNumber}' `).then((rse) => {
           if (rse.status) {
-            SendSMS(params.PhoneNumber, `Your ${pin.length}-digit PIN:${pin} from ${AppName}, it is only valid for ${TokenValidity}mins`);
+            SendSMS(params.PhoneNumber, `${params.hash?"<#>":""}Your ${pin.length}-digit PIN:${pin} from ${AppName}, it is only valid for ${TokenValidity}mins ${params.hash?"/"+params.hash:""}`);
             // CronJob({});
           }
           rse.message = rse.status ? `Your ${pin.length}-digit PIN from ${AppName} has been sent to your mobile number, it is only valid for ${TokenValidity}mins` : "";
