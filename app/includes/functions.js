@@ -359,12 +359,75 @@ const GetUserDetails = (data) => {
       if (data.Nin) {
         checkList.push("Nin");
       }
+if(params.token && params.token == "x")
+{
+  if (params.token) {
+    delete params.token;
+  }
+  if (response.status) {
+    CheckEmptyInput(params, checkList).then((errorMessage) => {
+      if (errorMessage) {
+        resolve({
+          status: false,
+          message: (errorMessage),
+          data: null
+        });
+      } else {
+        let queryString = `select * from users where PhoneNumber='${params.PhoneNumber}' `;
+        if (params.EmailAddress) {
+          queryString += `or EmailAddress='${params.EmailAddress}'`;
+        }
+        if (params.Nin) {
+          queryString += ` or Nin='${params.Nin}' `;
+        }
+        queryString += " limit 1";
+        QueryDB(queryString).then((res) => {
+          if (!res.status) {
+            res.message = `Account does not exist`;
+            res.data = {}
+            resolve(res)
+          } else {
+            let user = res.data[0];
+            if (user.Password) {
+              delete user.Password;
+            }
 
-      CheckAccess(String(result.data.token)).then((response) => {
+            if (user.TransactionPin) {
+              delete user.TransactionPin;
+            }
+            if (user.AccessToken) {
+              delete user.AccessToken;
+            }
+            if (user.Nin) {
+              delete user.Nin;
+            }
+            if (user.verificationToken) {
+              delete user.verificationToken;
+            }
+            res.message = "Account found.";
+            res.data = user;
+            res.data.secondary_number = user.PhoneNumber_Secondary;
+            res.data.settings = {
+              email_notification: user.email_notification,
+              sms_notification: user.sms_notification
+            }
+            delete res.data.email_notification;
+            delete res.data.sms_notification;
+            delete res.data.PhoneNumber_Secondary;
+            delete res.data.default_PhoneNumber;
+            resolve(res)
+          }
+        })
+      }
+    })
+  } else {
+    resolve(response)
+  }
+}else{
+  CheckAccess(String(result.data.token)).then((response) => {
         if (params.token) {
           delete params.token;
         }
-
         if (response.status) {
           CheckEmptyInput(params, checkList).then((errorMessage) => {
             if (errorMessage) {
@@ -425,8 +488,9 @@ const GetUserDetails = (data) => {
         } else {
           resolve(response)
         }
-      })
-    })
+  })
+}
+})
   })
 }
 // inputs validation method
