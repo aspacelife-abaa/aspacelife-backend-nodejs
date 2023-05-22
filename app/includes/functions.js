@@ -695,7 +695,7 @@ const Transfer = (data) => {
                           resolve(paymentResponse)
                         });
                       } else {
-                        resolve(beneficiaryResponse);
+                        resolve(senderWalletResponse);
                       }
                     })
                   }
@@ -794,31 +794,17 @@ const TransferToMerchant = (data) => {
 const SendMoney = (data) => {
   const referenceNumber = EnCrypPassword(Moment().format("DDMMYYYYhhmmss"));
   return new Promise((resolve) => {
-    UpdateWalletBalance(data.reciever, String(data.amount), "credit", referenceNumber).then((recieverWalletResponse) => {
-      if (recieverWalletResponse.status) {
-        const rsms = `Credit\nAmt:${NairaSymbol}${returnComma(String(data.amount))}\nAcc:${MaskNumber(String(data.reciever.PhoneNumber))}\nDesc: wallet-to-wallet from ${data.sender.FirstName} ${data.sender.LastName}(${data.sender.PhoneNumber})\nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nTotal Bal:${NairaSymbol}${returnComma(recieverWalletResponse.data.balance)}`;
-        console.log(rsms);
-        SendSMS(GetDefaultPhoneNumber(data.reciever, String(data.reciever.PhoneNumber_Secondary)), rsms);
-        SendEmail("Credit transaction", `Credit<br/>
-      Amt:${NairaSymbol}${returnComma(String(data.amount))}<br/>
-      Acc:${MaskNumber(String(data.reciever.PhoneNumber))}
-      Desc:wallet-to-wallet from ${data.sender.FirstName} ${data.sender.LastName}<br/>
-      Time:${Moment().format("DD/MM/YYYY hh:mm A")}<br/>
-      Total Bal:${NairaSymbol}${returnComma(recieverWalletResponse.data.balance)}`, data.reciever);
-        SaveTransactionHistory({
-          amount: String(data.amount),
-          beneficiary_account: String(data.reciever.PhoneNumber),
-          customer_name: data.reciever.FirstName + " " + data.reciever.LastName,
-          beneficiary_bank_name: `${AppName} wallet`,
-          PhoneNumber: String(data.reciever.PhoneNumber),
-          memo: `wallet-to-wallet from ${data.sender.FirstName} ${data.sender.LastName}`,
-          token: "",
-          transaction_ref: referenceNumber,
-          transaction_type: "credit",
-          status: "success"
+    // check is transaction exist
+    QueryDB(`select *  from transactions where transaction_ref='${referenceNumber}' limit 1 `).then((res)=>{
+      if(res.status)
+      {
+        resolve({
+          status:false,
+          message:"Oops! duplicate transaction.",
+          data:{}
         })
+        return;
       }
-    })
     UpdateWalletBalance(data.sender, String(data.amount), "debit", referenceNumber).then((res) => {
       if (res.status) {
         // send email ans sms
@@ -842,8 +828,46 @@ const SendMoney = (data) => {
           transaction_type: "debit",
           status: "success"
         })
-      }
+      UpdateWalletBalance(data.reciever, String(data.amount), "credit", referenceNumber).then((recieverWalletResponse) => {
+        if (recieverWalletResponse.status) {
+          const rsms = `Credit\nAmt:${NairaSymbol}${returnComma(String(data.amount))}\nAcc:${MaskNumber(String(data.reciever.PhoneNumber))}\nDesc: wallet-to-wallet from ${data.sender.FirstName} ${data.sender.LastName}(${data.sender.PhoneNumber})\nTime:${Moment().format("DD/MM/YYYY hh:mm A")}\nTotal Bal:${NairaSymbol}${returnComma(recieverWalletResponse.data.balance)}`;
+          console.log(rsms);
+          SendSMS(GetDefaultPhoneNumber(data.reciever, String(data.reciever.PhoneNumber_Secondary)), rsms);
+          SendEmail("Credit transaction", `Credit<br/>
+        Amt:${NairaSymbol}${returnComma(String(data.amount))}<br/>
+        Acc:${MaskNumber(String(data.reciever.PhoneNumber))}
+        Desc:wallet-to-wallet from ${data.sender.FirstName} ${data.sender.LastName}<br/>
+        Time:${Moment().format("DD/MM/YYYY hh:mm A")}<br/>
+        Total Bal:${NairaSymbol}${returnComma(recieverWalletResponse.data.balance)}`, data.reciever);
+          SaveTransactionHistory({
+            amount: String(data.amount),
+            beneficiary_account: String(data.reciever.PhoneNumber),
+            customer_name: data.reciever.FirstName + " " + data.reciever.LastName,
+            beneficiary_bank_name: `${AppName} wallet`,
+            PhoneNumber: String(data.reciever.PhoneNumber),
+            memo: `wallet-to-wallet from ${data.sender.FirstName} ${data.sender.LastName}`,
+            token: "",
+            transaction_ref: referenceNumber,
+            transaction_type: "credit",
+            status: "success"
+          })
+          resolve({
+            status:true,
+            message:"Transaction was successful",
+            data:{}
+          })
+        }else{
+          resolve({
+            status:false,
+            message:"Oops! Transaction was not successful",
+            data:{}
+          })
+        }
+      })
+    }else{
       resolve(res)
+    }
+    })
     })
   })
 }
@@ -998,6 +1022,7 @@ const UpdateWalletBalance = (receiver, amount, updateType, refNo) => {
     NonAuthGetUserDetails({
       PhoneNumber: String(receiver.PhoneNumber)
     }).then((u) => {
+   
       if (u.status) {
         GetWalletBalance(String(receiver.PhoneNumber)).then((res) => {
           if (!res.status) {
@@ -1013,11 +1038,7 @@ const UpdateWalletBalance = (receiver, amount, updateType, refNo) => {
           } else {
             const WalletData = res.data;
             const balance = updateType == 'credit' ? String(parseFloat(WalletData.balance) + parseFloat(amount)) : String(parseFloat(WalletData.balance) - parseFloat(amount));
-            QueryDB(GetQueryString(["balance"], {
-              balance
-            }, 'update', 'wallets', {
-              phone_number: receiver.PhoneNumber
-            })).then((res) => {
+            QueryDB(`UPDATE wallets SET balance='${balance}' WHERE phone_number='${receiver.PhoneNumber}'`).then((res) => {
               if (res.status) {
                 res.data = {
                   balance
@@ -1205,7 +1226,7 @@ const SendToken = (data) => {
       QueryDB(`select * from tokens where PhoneNumber='${params.PhoneNumber}' limit 1`).then((res) => {
         QueryDB(!res.status ? `insert into tokens (verificationToken,PhoneNumber) values ('${pin}','${params.PhoneNumber}')` : `update tokens set verificationToken='${pin}' where PhoneNumber='${params.PhoneNumber}' `).then((rse) => {
           if (rse.status) {
-            SendSMS(params.PhoneNumber, `${params.hash?"<#>":""}Your ${pin.length}-digit PIN:${pin} from ${AppName}, it is only valid for ${TokenValidity}mins ${params.hash?"/"+params.hash:""}`);
+            SendSMS(params.PhoneNumber, `${params.hash?"<#>":""}Your ${pin.length}-digit TOKEN:${pin} from ${AppName}, it is only valid for ${TokenValidity}mins ${params.hash?"/"+params.hash:""}`);
             // CronJob({});
           }
           rse.message = rse.status ? `Your ${pin.length}-digit PIN from ${AppName} has been sent to your mobile number, it is only valid for ${TokenValidity}mins` : "";
