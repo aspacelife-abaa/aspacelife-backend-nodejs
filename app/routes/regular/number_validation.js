@@ -1,9 +1,9 @@
 
 const {version} = require('../../includes/config');
 module.exports = (app)=>{
-    app.post(`/${version}/number_validation`,(req, res) =>{
+    app.post(`/${version}/meter_number_verification`,(req, res) =>{
         const params = Object.assign({token:req.headers["token"]},req.body);
-        req.BaseFunctions.NumberValidation(params).then((response)=>{
+        req.BaseFunctions.NumberMeterValidation(params).then((response)=>{
         res.json(response);
         })
     })

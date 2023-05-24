@@ -1,53 +1,40 @@
-var https = require('follow-redirects').https;
+var request = require('request');
 require('dotenv').config();
-const VerifyMeterNumber = async(data)=>{
+const VTPASSVerifyMeterNumber = async(data)=>{
     const response = await Post(data)
      return response;
  }
  async function  Post(data){
-     var options = {
-         'method': 'POST',
-         'hostname': 'sandbox.vtpass.com',
-        'path': '/api/merchant-verify',
-         'headers': {
-           'Authorization': `Bearer ${process.env.VTPASS_Username}${process.env.VTPASS_Password}`
-         },
-         'maxRedirects': 20
-       };
-       console.log("options:",options);
+  var options = {
+    'method': 'POST',
+    'url': process.env.isDEV == "1"?'https://sandbox.vtpass.com/api/merchant-verify':'https://vtpass.com/api/merchant-verify',
+    'headers': {
+      'Authorization': process.env.isDEV == "1"?'Basic bXlhc3BhY2VsaWZldGVjaEBnbWFpbC5jb206YWRtaW5sZXZlbDE=':`Basic `,
+    },
+    formData: {
+      'billersCode': data.meterNumber,
+      'serviceID': data.serviceID,
+      'type':data.type
+    }
+  };
      return new Promise((resolve)=>{
-     var req = https.request(options, function (res) {
-       var chunks = [];
-       res.on("data", function (chunk) {
-         chunks.push(chunk);
-       });
-     
-       res.on("end", function (chunk) {
-         var body = Buffer.concat(chunks);
-         const x = JSON.parse(body.toString());
-         resolve({
-             status:x.status != "success",
-             message:x.message,
-             data:x.data
-             })
-       });
-     
-       res.on("error", function (error) {
-         console.error(error);
-         resolve({
+      request(options, function (error, response) {
+        if (error)
+        { 
+        resolve({
              status:false,
              message:error.message,
              data:{}
              })
+        }else{
+          const body = JSON.parse(response.body);
+          resolve({
+            status:true,
+            message:"",
+            data:body.content
+          }) 
+        }
        });
-     });
-     const postData = JSON.stringify({
-        billersCode:data.meter_number,
-        serviceID:data.serviceID,
-        type:data.type
-     })
-     req.write(postData);
-     req.end();
      })
      }
-module.exports = {VerifyMeterNumber};
+module.exports = {VTPASSVerifyMeterNumber};

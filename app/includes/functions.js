@@ -149,7 +149,7 @@ const {
   PaystackSubmitPIN
 } = require('./paystack/submit_pin');
 const {
-  VerifyMeterNumber
+  VTPASSVerifyMeterNumber
 } = require('./electricity/vtpass_verify_meter');
 const { sha512 } = require('js-sha512');
 
@@ -2991,7 +2991,7 @@ const GetAirtimeProviders = (data) => {
     })
   })
 }
-const NumberValidation = (data) => {
+const NumberMeterValidation = (data) => {
   return new Promise((resolve) => {
     AntiHacking(data).then((result) => {
       CheckEmptyInput(result.data, ["token", "meter_number", "type", "serviceID"]).then((errorMessage) => {
@@ -3004,22 +3004,11 @@ const NumberValidation = (data) => {
         } else {
           CheckAccess(result.data.token).then((response) => {
             if (response.status) {
-              VerifyMeterNumber({
+              VTPASSVerifyMeterNumber({
                 meterNumber: result.data.meter_number,
                 type: result.data.type,
                 serviceID: "ikeja-electric"
               }).then((res) => {
-                // res.data.map((a,i)=>{
-                //     delete  a.commission_on_fee;
-                //     delete  a.label_name;
-                //     delete  a.fee;
-                //     delete  a.is_airtime;
-                //     delete  a.country;
-                //     delete  a.default_commission;
-                //     delete  a.date_added;
-                //     delete  a.default_commission;
-                //   return a
-                // })
                 resolve(res);
               })
             } else {
@@ -5317,6 +5306,165 @@ const UserVerifyCash = (data) => {
     })
   })
 }
+const SendSMSToSeller = (data) => {
+  return new Promise((resolve) => {
+    AntiHacking(data).then((result) => {
+      const checklist = ["mobile", "token", "email","message"];
+      CheckEmptyInput(result.data, checklist).then((errorMessage) => {
+        if (errorMessage) {
+          resolve({
+            status: false,
+            message: String(errorMessage),
+            data: {}
+          });
+        } else {
+          const params = result.data;
+          CheckAccess(params.token, params.transactionPIN).then((response) => {
+            if (response.status) {
+              const currentUser = response.data;
+              GetWalletBalance(currentUser.PhoneNumber).then((re) => {
+                if (!re.status) {
+                  re.message = "Oops! account does not exist.";
+                  re.data = {};
+                  resolve(re)
+                } else {
+                  let WalletData = re.data;
+                  let amount = 100;
+                  if (parseFloat(WalletData.balance) < amount) {
+                    resolve({
+                      status: false,
+                      message: `Insufficient balance (NGN${WalletData.balance})`,
+                      data: {
+                        balance: WalletData.balance
+                      }
+                    });
+                  } else {
+             const txRef = generateRandomNumber(15)
+             SendSMS(params.mobile,params.mobile);
+             UpdateWalletBalance({
+              PhoneNumber: currentUser.PhoneNumber
+             }, amount, "debit",txRef).then((bal) => {
+              if (bal.status) {
+                const sms = `Debit \nAmt:${NairaSymbol}${returnComma(amount)} \nAcc:${MaskNumber(String(String(currentUser.PhoneNumber)))} \nDesc: SMS to Seller \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(bal.data.balance)}`;
+                SendSMS(GetDefaultPhoneNumber(currentUser, String(currentUser.PhoneNumber)), sms);
+                SendEmail(`${AppName} Debit alert`, sms, currentUser);
+              }
+            })
+            SaveTransactionHistory({
+              amount: String(amount),
+              PhoneNumber: String(currentUser.PhoneNumber),
+              transaction_ref: String(txRef),
+              customer_name: currentUser.FirstName + " " + currentUser.LastName,
+              token: "",
+              memo: `Sms charges`,
+              transaction_type: "debit",
+              beneficiary_account: String(currentUser.PhoneNumber),
+              beneficiary_bank_name: "AbaaChatPay Wallet",
+              status: "success"
+            })
+            //  SendEmail(params.mobile,``);
+            resolve({
+              status:true,
+              message:"Message sent to seller",
+              data:{}
+            })
+            }
+              }
+            })
+            } else {
+              resolve(response)
+            }
+          })
+        }
+      })
+    })
+  })
+}
+const ChargerADVERTS = (data) => {
+  return new Promise((resolve) => {
+    AntiHacking(data).then((result) => {
+      const checklist = ["id", "token", "days"];
+      CheckEmptyInput(result.data, checklist).then((errorMessage) => {
+        if (errorMessage) {
+          resolve({
+            status: false,
+            message: String(errorMessage),
+            data: {}
+          });
+        } else {
+          const params = result.data;
+          CheckAccess(params.token, params.transactionPIN).then((response) => {
+            if (response.status) {
+              const currentUser = response.data;
+              QueryDB(`select from Ads where adsId='${params.id}' limit 1`).then((res)=>{
+              if(res.status)
+              {
+                GetWalletBalance(currentUser.PhoneNumber).then((re) => {
+                if (!re.status) {
+                  re.message = "Oops! account does not exist.";
+                  re.data = {};
+                  resolve(re)
+                } else {
+                  let WalletData = re.data;
+                  let amount = 100;
+                  if (parseFloat(WalletData.balance) < amount) {
+                    resolve({
+                      status: false,
+                      message: `Insufficient balance (NGN${WalletData.balance})`,
+                      data: {
+                        balance: WalletData.balance
+                      }
+                    });
+                  } else {
+             const txRef = generateRandomNumber(15)
+             SendSMS(params.mobile,params.mobile);
+             UpdateWalletBalance({
+              PhoneNumber: currentUser.PhoneNumber
+             }, amount, "debit",txRef).then((bal) => {
+              if (bal.status) {
+                const sms = `Debit \nAmt:${NairaSymbol}${returnComma(amount)} \nAcc:${MaskNumber(String(String(currentUser.PhoneNumber)))} \nDesc: SMS to Seller \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(bal.data.balance)}`;
+                SendSMS(GetDefaultPhoneNumber(currentUser, String(currentUser.PhoneNumber)), sms);
+                SendEmail(`${AppName} Debit alert`, sms, currentUser);
+              }
+            })
+            SaveTransactionHistory({
+              amount: String(amount),
+              PhoneNumber: String(currentUser.PhoneNumber),
+              transaction_ref: String(txRef),
+              customer_name: currentUser.FirstName + " " + currentUser.LastName,
+              token: "",
+              memo: `Sms charges`,
+              transaction_type: "debit",
+              beneficiary_account: String(currentUser.PhoneNumber),
+              beneficiary_bank_name: "AbaaChatPay Wallet",
+              status: "success"
+            })
+            //  SendEmail(params.mobile,``);
+            resolve({
+              status:true,
+              message:"Message sent to seller",
+              data:{}
+            })
+            }
+              }
+              })
+              }else{
+                resolve({
+                  status:false,
+                  message:"The ADS you are tyring to access does not exist",
+                  data:{}
+                })
+              }
+              })
+            } else {
+              resolve(response)
+            }
+          })
+        }
+      })
+    })
+  })
+}
 module.exports = {
   UserLogin,
   Registration,
@@ -5356,7 +5504,7 @@ module.exports = {
   GetListElectricityProvider,
   GetListDataBundles,
   GetAirtimeProviders,
-  NumberValidation,
+  NumberMeterValidation,
   PurchaseAirtime,
   GetAirtimeHistory,
   ElectricityPurchase,
@@ -5382,6 +5530,8 @@ module.exports = {
   ProfileImageUpload,
   UserVerifyCash,
   GeneratePaymentLinkAccount,
+  SendSMSToSeller,
+  ChargerADVERTS,
   // merchant
   GetMerchantDetails,
   MerchantVerifyCash,
