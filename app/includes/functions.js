@@ -5168,7 +5168,7 @@ const ProfileImageUpload = (params) => {
         return;
       }
       const UploadData = data.data;
-      CheckEmptyInput(UploadData, ["image_path", "token"]).then((errorMessage) => {
+      CheckEmptyInput(UploadData, ["image_url", "token"]).then((errorMessage) => {
         if (errorMessage) {
           resolve({
             status: false,
@@ -5181,10 +5181,7 @@ const ProfileImageUpload = (params) => {
               resolve(res);
               return;
             }
-            // encrypt password
-            SaveFiles(res.data.PhoneNumber, UploadData.image_path, "profile_image").then((resp) => {
-              if (resp.status) {
-                QueryDB(`update users set Avatar='${resp.data}' where phoneNumber='${res.data.PhoneNumber}' limit 1`).then((result) => {
+        QueryDB(`update users set Avatar='${UploadData.image_url}' where phoneNumber='${res.data.PhoneNumber}' limit 1`).then((result) => {
                   if (!result.status) {
                     resolve({
                       status: false,
@@ -5193,61 +5190,17 @@ const ProfileImageUpload = (params) => {
                     });
                   } else {
                     // send email
-                    result.message = result.status ? `Profile image uploaded successfully.` : `Oops! Something went wrong, try aging later.`;
+                    result.message = `Profile image uploaded successfully.`;
                     resolve(result);
                   }
                 })
-              } else {
-                resolve({
-                  status: false,
-                  message: `Oops! image not uploaded.`,
-                  data: {}
-                });
-              }
-            })
           })
         }
       })
     })
   });
 }
-const SaveFiles = (phoneNumber, path, filename) => {
-  var fs = require('fs');
-  var pathName = require('path');
-  return new Promise((resolve) => {
-    var folder = pathName.dirname(path);
-    let sourceFilePath = "./" + path;
-    let destinationFilePath = './' + String(path).replace(folder, "public/fld-" + phoneNumber + "/images");
 
-    let extn = "";
-    if (String(sourceFilePath).replace("./", "").includes(".")) {
-      let splt = sourceFilePath.split(".");
-      extn = splt[splt.length - 1];
-      sourceFilePath = String(sourceFilePath).replace("." + extn, "");
-    }
-    if (filename) {
-      let extract_name = String(sourceFilePath).replace(folder + "/", "");
-      destinationFilePath = String(destinationFilePath).replace(extract_name.replace("./", ""), filename);
-      console.log("extract_name:", extract_name, "|", destinationFilePath)
-    }
-    // resolve(destinationFilePath)
-    // return ;
-    fs.rename(sourceFilePath, destinationFilePath, (error) => {
-      if (error) {
-        resolve({
-          status: false,
-          message: error.message
-        })
-      } else {
-        resolve({
-          status: true,
-          message: 'File moved successfully!',
-          data: String(destinationFilePath).replace("./public/", "")
-        })
-      }
-    });
-  })
-}
 const UserVerifyCash = (data) => {
   return new Promise((resolve) => {
     AntiHacking(data).then((result) => {
