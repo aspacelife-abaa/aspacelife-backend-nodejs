@@ -152,6 +152,7 @@ const {
   VTPASSVerifyMeterNumber
 } = require('./electricity/vtpass_verify_meter');
 const { sha512 } = require('js-sha512');
+const { SendPush } = require('./firebase/push');
 
 const UserLogin = (params) => {
   return new Promise((resolve) => {
@@ -5418,6 +5419,57 @@ const ChargerADVERTS = (data) => {
     })
   })
 }
+const SendPushNotification = (data) => {
+  return new Promise((resolve) => {
+    AntiHacking(data).then((result) => {
+      const checklist = ["email", "message","token"];
+      CheckEmptyInput(result.data, checklist).then((errorMessage) => {
+        if (errorMessage) {
+          resolve({
+            status: false,
+            message: String(errorMessage),
+            data: {}
+          });
+        } else {
+          const params = result.data;
+          CheckAccess(params.token).then((response) => {
+            if (response.status) {
+              const currentUser = response.data;
+              QueryDB(`select * from users where EmailAddress='${params.email}' limit 1`).then((res)=>{
+                if(res.status)
+              {
+                const recipientData = res.data[0];
+                // PushToken
+                if(recipientData.PushToken != null)
+                {
+                  // send push
+                  SendPush({
+                    to:recipientData.PushToken,
+                    data:{
+                    title:"new chat message from",
+                    body:"dkdlld"
+                    }
+                  }).then((res)=>{
+                    resolve(res)
+                  })
+                  return ;
+                }
+                resolve({
+
+                })
+              }else{
+                resolve(res)
+              }
+              })
+            } else {
+              resolve(response)
+            }
+          })
+        }
+      })
+    })
+  })
+}
 module.exports = {
   UserLogin,
   Registration,
@@ -5485,6 +5537,7 @@ module.exports = {
   GeneratePaymentLinkAccount,
   SendSMSToSeller,
   ChargerADVERTS,
+  SendPushNotification,
   // merchant
   GetMerchantDetails,
   MerchantVerifyCash,

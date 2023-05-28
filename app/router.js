@@ -57,7 +57,7 @@ require("./routes/regular/profile_image_upload")(app);
 require("./routes/regular/user_verify_cash_pickup")(app);
 require("./routes/regular/link_account_payment_url")(app);
 require("./routes/regular/send_msg_to_seller")(app);
-
+require("./routes/regular/send_push_msg")(app);
 // merchant account routes
 require("./routes/merchant/account_upgrade")(app);
 require("./routes/merchant/cac_verification")(app);
