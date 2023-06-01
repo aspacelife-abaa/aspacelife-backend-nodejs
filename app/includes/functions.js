@@ -5504,7 +5504,6 @@ const CreateAdvert = (data) => {
                   const sms = `Debit \nAmt:${NairaSymbol}${returnComma(params.plan)} \nAcc:${MaskNumber(String(String(currentUser.PhoneNumber)))} \nDesc: Ads Post \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(bal.data.balance)}`;
                   SendSMS(GetDefaultPhoneNumber(currentUser, String(currentUser.PhoneNumber)), sms);
                   SendEmail(`${AppName} Debit alert`, sms, currentUser);
-             
               SaveTransactionHistory({
                 amount: String(params.plan),
                 PhoneNumber: String(currentUser.PhoneNumber),
@@ -5517,6 +5516,7 @@ const CreateAdvert = (data) => {
                 beneficiary_bank_name: "AbaaChatPay Wallet",
                 status: "success"
               })
+              bal.message = "Your advert submitted successfully."
             }
               resolve(bal)
               })
