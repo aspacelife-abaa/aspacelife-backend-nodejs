@@ -5470,6 +5470,44 @@ const SendPushNotification = (data) => {
     })
   })
 }
+const CreateAdvert = (data) => {
+  return new Promise((resolve) => {
+    AntiHacking(data).then((result) => {
+      const checklist = ["title", "category","plan","phoneNumber","email","planName","duration","price","bussines_address","desc","bussines_address","token"];
+      CheckEmptyInput(result.data, checklist).then((errorMessage) => {
+        if (errorMessage) {
+          resolve({
+            status: false,
+            message: String(errorMessage),
+            data: {}
+          });
+        } else {
+          const params = result.data;
+          CheckAccess(params.token).then((response) => {
+            if (response.status) {
+             const currentUser = response.data;
+             GetWalletBalance(currentUser.PhoneNumber).then((res)=>{
+              if(parseFloat(params.plan) > parseFloat(res.data.balance))
+              {
+                resolve({
+                  ...res,
+                  status:false,
+                  message:`Insufficient wallet balance - (Balance: NGN${returnComma(res.data.balance)})`
+                })
+              }else{
+              // post ads 
+              resolve(res)
+              }
+             })
+            } else {
+              resolve(response)
+            }
+          })
+        }
+      })
+    })
+  })
+}
 module.exports = {
   UserLogin,
   Registration,
@@ -5538,6 +5576,7 @@ module.exports = {
   SendSMSToSeller,
   ChargerADVERTS,
   SendPushNotification,
+  CreateAdvert,
   // merchant
   GetMerchantDetails,
   MerchantVerifyCash,
