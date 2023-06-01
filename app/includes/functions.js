@@ -5495,8 +5495,31 @@ const CreateAdvert = (data) => {
                   message:`Insufficient wallet balance - (Balance: NGN${returnComma(res.data.balance)})`
                 })
               }else{
-              // post ads 
-              resolve(res)
+              // post ads , send sms
+              const txRef = generateRandomNumber(15)
+              UpdateWalletBalance({
+                PhoneNumber: currentUser.PhoneNumber
+               }, params.plan, "debit",txRef).then((bal) => {
+                if (bal.status) {
+                  const sms = `Debit \nAmt:${NairaSymbol}${returnComma(params.plan)} \nAcc:${MaskNumber(String(String(currentUser.PhoneNumber)))} \nDesc: Ads Post \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(bal.data.balance)}`;
+                  SendSMS(GetDefaultPhoneNumber(currentUser, String(currentUser.PhoneNumber)), sms);
+                  SendEmail(`${AppName} Debit alert`, sms, currentUser);
+             
+              SaveTransactionHistory({
+                amount: String(params.plan),
+                PhoneNumber: String(currentUser.PhoneNumber),
+                transaction_ref: String(txRef),
+                customer_name: currentUser.FirstName + " " + currentUser.LastName,
+                token: "",
+                memo: `Advert Post`,
+                transaction_type: "debit",
+                beneficiary_account: String(currentUser.PhoneNumber),
+                beneficiary_bank_name: "AbaaChatPay Wallet",
+                status: "success"
+              })
+            }
+              resolve(bal)
+              })
               }
              })
             } else {
