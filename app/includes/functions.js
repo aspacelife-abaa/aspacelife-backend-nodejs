@@ -5575,7 +5575,7 @@ const LoginWithPIN = (params) => {
               // update accessToken
               QueryDB(`update users set AccessToken='${AccessToken}' where PhoneNumber='${currentUser.PhoneNumber}' limit 1 `)
             } else {
-              result.message = "Oops! Invalid login credentails.";
+              result.message = "Oops! Invalid PIN.";
               result.data = {}
             }
             resolve(result);
