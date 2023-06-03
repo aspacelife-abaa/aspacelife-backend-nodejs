@@ -187,8 +187,11 @@ const UserLogin = (params) => {
               user.PaystackPublicKey = PaystackPublickey;
               result.data = user;
               result.message = "Login successful.";
-              result.data.privacyUrl = process.env.privacyUrl,
-                result.data.termsUrl = process.env.termsUrl,
+              result.data.privacyUrl = process.env.privacyUrl;
+              result.data.termsUrl = process.env.termsUrl;
+              result.data.CloudinaryUpload_preset = process.env.CloudinaryUpload_preset; 
+              result.data.CloudinaryFolder = process.env.CloudinaryFolder; 
+              result.data.CloudinaryCloud_name = process.env.CloudinaryCloud_name; 
                 // update AccessToken
               QueryDB(`update users set AccessToken='${user.AccessToken}',PushToken='${Logindata.fcmtoken}' where PhoneNumber='${user.PhoneNumber}' limit 1 `)
               // send email
@@ -5025,6 +5028,12 @@ const FingerPrintLogin = (params) => {
                 result.data = user;
                 result.data.PaystackPublicKey = PaystackPublickey;
                 result.message = "Login successful.";
+                result.data.privacyUrl = process.env.privacyUrl;
+                result.data.termsUrl = process.env.termsUrl;
+                result.data.CloudinaryUpload_preset = process.env.CloudinaryUpload_preset; 
+                result.data.CloudinaryFolder = process.env.CloudinaryFolder; 
+                result.data.CloudinaryCloud_name = process.env.CloudinaryCloud_name; 
+          
                 // update AccessToken
                 QueryDB(GetQueryString(["AccessToken"], {
                   AccessToken: user.AccessToken
@@ -5531,6 +5540,55 @@ const CreateAdvert = (data) => {
     })
   })
 }
+
+const LoginWithPIN = (params) => {
+  return new Promise((resolve) => {
+    AntiHacking(params).then((data) => {
+      if (data.error) {
+        resolve({
+          status: false,
+          data: {},
+          message: 'Oops! try again next time.'
+        })
+        return;
+      }
+      const Logindata = data.data;
+      CheckEmptyInput(Logindata, ["pin", "token"]).then((errorMessage) => {
+        if (errorMessage) {
+          resolve({
+            status: false,
+            data: {},
+            message: errorMessage.toString()
+          })
+        } else {
+        CheckAccess(Logindata.token).then((response) => {
+        if (response.status) {
+          const currentUser = response.data;
+          const pin = EnCrypPassword(String(Logindata.pin).replace("null",""));
+          QueryDB(`select * from users where loginPIN='${pin}' and PhoneNumber='${currentUser.PhoneNumber}' limit 1`).then((result)=>{
+            if (result.status) {
+              let user = result.data[0];
+              const AccessToken = {AccessToken:sha512(Moment().toISOString() + user.PhoneNumber)};
+              result.data = AccessToken
+              result.message = "Login successful.";
+              // send email
+              // update accessToken
+              QueryDB(`update users set AccessToken='${AccessToken}' where PhoneNumber='${currentUser.PhoneNumber}' limit 1 `)
+            } else {
+              result.message = "Oops! Invalid login credentails.";
+              result.data = {}
+            }
+            resolve(result);
+          })
+        }else{
+          resolve(response)
+        }
+        })
+        }
+      })
+    })
+  });
+}
 module.exports = {
   UserLogin,
   Registration,
@@ -5600,6 +5658,7 @@ module.exports = {
   ChargerADVERTS,
   SendPushNotification,
   CreateAdvert,
+  LoginWithPIN,
   // merchant
   GetMerchantDetails,
   MerchantVerifyCash,
