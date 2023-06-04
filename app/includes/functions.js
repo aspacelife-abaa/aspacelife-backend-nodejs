@@ -5706,7 +5706,7 @@ const GetSubscriptionPlans = (d)=>{
           QueryDB(`select * from subscriptionPlans order by sbID desc`).then((result)=>{
             result.data = result.data.map((a,i)=>{
              const color = ["#6ecbff","#6effb3"];
-             const rand = Math.floor(Math.random()*(color.length + 1))
+             const rand = Math.floor(Math.random() * (0 - color.length) + 1)
               return {
                 id:a.sbID,
                 value:a.sbAmount,
@@ -5715,6 +5715,7 @@ const GetSubscriptionPlans = (d)=>{
                 duration:a.sbDuration,
                 initialValue:a.sbInitialValue,
                 date:a.sbDate,
+                rand:rand,
                 color:color[rand]
               };
             })
