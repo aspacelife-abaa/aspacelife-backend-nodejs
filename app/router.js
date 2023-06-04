@@ -62,6 +62,7 @@ require("./routes/regular/create_advert")(app);
 require("./routes/regular/login_with_pin")(app);
 require("./routes/regular/login_with_pin_setup")(app);
 require("./routes/regular/login_with_pin_toggle")(app);
+require("./routes/regular/getplans")(app);
 // merchant account routes
 require("./routes/merchant/account_upgrade")(app);
 require("./routes/merchant/cac_verification")(app);

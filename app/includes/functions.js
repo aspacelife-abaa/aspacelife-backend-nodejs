@@ -5637,9 +5637,9 @@ const LoginWithPINSetUp = (params) => {
   });
 }
 
-const LoginWithPINToggle = (params) => {
+const LoginWithPINToggle = (d) => {
   return new Promise((resolve) => {
-    AntiHacking(params).then((data) => {
+    AntiHacking(d).then((data) => {
       if (data.error) {
         resolve({
           status: false,
@@ -5679,6 +5679,52 @@ const LoginWithPINToggle = (params) => {
       })
     })
   });
+}
+const GetSubscriptionPlans = (d)=>{
+  return new Promise((resolve) => {
+    AntiHacking(d).then((data) => {
+      if (data.error) {
+        resolve({
+          status: false,
+          data: {},
+          message: 'Oops! try again next time.'
+        })
+        return;
+      }
+      const params = data.data;
+      CheckEmptyInput(params, ["token"]).then((errorMessage) => {
+        if (errorMessage) {
+          resolve({
+            status: false,
+            data: {},
+            message: errorMessage.toString()
+          })
+        } else {
+        CheckAccess(params.token).then((response) => {
+        if (response.status) {
+          const currentUser = response.data;
+          QueryDB(`select * from subscriptionPlans order by sbID desc`).then((result)=>{
+            result.data = result.data.map((a,i)=>{
+              return {
+                id:a.sbID,
+                amount:a.sbAmount,
+                desc:a.sbDescription,
+                title:a.sbName,
+                duration:a.sbDuration,
+                initialValue:a.sbInitialValue,
+                date:a.sbDate
+              };
+            })
+            resolve(result);
+          })
+        }else{
+          resolve(response)
+        }
+        })
+        }
+      })
+    })
+  }); 
 }
 module.exports = {
   UserLogin,
@@ -5752,6 +5798,7 @@ module.exports = {
   LoginWithPIN,
   LoginWithPINSetUp,
   LoginWithPINToggle,
+  GetSubscriptionPlans,
   // merchant
   GetMerchantDetails,
   MerchantVerifyCash,
