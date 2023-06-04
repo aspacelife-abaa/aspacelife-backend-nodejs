@@ -5707,12 +5707,13 @@ const GetSubscriptionPlans = (d)=>{
             result.data = result.data.map((a,i)=>{
               return {
                 id:a.sbID,
-                amount:a.sbAmount,
+                value:a.sbAmount,
                 desc:a.sbDescription,
-                title:a.sbName,
+                name:a.sbName,
                 duration:a.sbDuration,
                 initialValue:a.sbInitialValue,
-                date:a.sbDate
+                date:a.sbDate,
+                color:"#6effb3"
               };
             })
             resolve(result);
