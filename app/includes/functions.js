@@ -5563,7 +5563,8 @@ const LoginWithPIN = (params) => {
           })
         } else {
         CheckAccess(Logindata.token).then((response) => {
-        if (response.status) {
+          
+          if (response.status) {
           const currentUser = response.data;
           const pin = EnCrypPassword(String(Logindata.pin).replace("null",""));
           QueryDB(`select * from users where loginPIN='${pin}' and PhoneNumber='${currentUser.PhoneNumber}' limit 1`).then((result)=>{
@@ -5573,7 +5574,8 @@ const LoginWithPIN = (params) => {
               result.message = "Login successful.";
               // send email
               // update accessToken
-              QueryDB(`update users set AccessToken='${AccessToken}' where PhoneNumber='${currentUser.PhoneNumber}' limit 1 `)
+              const x = `update users set AccessToken='${AccessToken.AccessToken}' where PhoneNumber='${currentUser.PhoneNumber}' limit 1 `;
+              QueryDB(x)
             } else {
               result.message = "Oops! Invalid PIN.";
               result.data = {}
