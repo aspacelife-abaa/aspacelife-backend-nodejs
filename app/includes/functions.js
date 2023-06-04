@@ -192,6 +192,7 @@ const UserLogin = (params) => {
               result.data.CloudinaryUpload_preset = process.env.CloudinaryUpload_preset; 
               result.data.CloudinaryFolder = process.env.CloudinaryFolder; 
               result.data.CloudinaryCloud_name = process.env.CloudinaryCloud_name; 
+              result.data.enableLoginPIN =  String(result.data.enableLoginPIN) == "1";
                 // update AccessToken
               QueryDB(`update users set AccessToken='${user.AccessToken}',PushToken='${Logindata.fcmtoken}' where PhoneNumber='${user.PhoneNumber}' limit 1 `)
               // send email
@@ -5033,7 +5034,7 @@ const FingerPrintLogin = (params) => {
                 result.data.CloudinaryUpload_preset = process.env.CloudinaryUpload_preset; 
                 result.data.CloudinaryFolder = process.env.CloudinaryFolder; 
                 result.data.CloudinaryCloud_name = process.env.CloudinaryCloud_name; 
-          
+                result.data.enableLoginPIN =  String(result.data.enableLoginPIN) == "1";
                 // update AccessToken
                 QueryDB(GetQueryString(["AccessToken"], {
                   AccessToken: user.AccessToken
