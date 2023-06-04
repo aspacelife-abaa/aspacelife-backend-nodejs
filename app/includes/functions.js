@@ -5568,9 +5568,8 @@ const LoginWithPIN = (params) => {
           const pin = EnCrypPassword(String(Logindata.pin).replace("null",""));
           QueryDB(`select * from users where loginPIN='${pin}' and PhoneNumber='${currentUser.PhoneNumber}' limit 1`).then((result)=>{
             if (result.status) {
-              let user = result.data[0];
-              const AccessToken = {AccessToken:sha512(Moment().toISOString() + user.PhoneNumber)};
-              result.data = AccessToken
+              const AccessToken = {AccessToken:sha512(Moment().toISOString() + currentUser.PhoneNumber)};
+              result.data = AccessToken;
               result.message = "Login successful.";
               // send email
               // update accessToken
