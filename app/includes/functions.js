@@ -5615,13 +5615,57 @@ const LoginWithPINSetUp = (params) => {
         if (response.status) {
           const currentUser = response.data;
           const pin = EnCrypPassword(String(Logindata.pin));
-          QueryDB(`update users set loginPIN='${pin}' where PhoneNumber='${currentUser.PhoneNumber}' `).then((result)=>{
+          QueryDB(`update users set loginPIN='${pin}',enableLoginPIN='1' where PhoneNumber='${currentUser.PhoneNumber}' `).then((result)=>{
             if (result.status) {
               result.message = "Access PIN setup successfully.";
               // send email
               // update accessToken
             } else {
               result.message = "Oops! Access PIN setup was not successful.";
+              result.data = {}
+            }
+            resolve(result);
+          })
+        }else{
+          resolve(response)
+        }
+        })
+        }
+      })
+    })
+  });
+}
+
+const LoginWithPINToggle = (params) => {
+  return new Promise((resolve) => {
+    AntiHacking(params).then((data) => {
+      if (data.error) {
+        resolve({
+          status: false,
+          data: {},
+          message: 'Oops! try again next time.'
+        })
+        return;
+      }
+      const params = data.data;
+      CheckEmptyInput(params, ["status", "token"]).then((errorMessage) => {
+        if (errorMessage) {
+          resolve({
+            status: false,
+            data: {},
+            message: errorMessage.toString()
+          })
+        } else {
+        CheckAccess(params.token).then((response) => {
+        if (response.status) {
+          const currentUser = response.data;
+          QueryDB(`update users set enableLoginPIN='${params.status?"1":"0"}' where PhoneNumber='${currentUser.PhoneNumber}' `).then((result)=>{
+            if (result.status) {
+              result.message = `Access PIN ${params.status?"enabled":"disabled"}.`;
+              // send email
+              // update accessToken
+            } else {
+              result.message = "Oops! something went wrong, try again later.";
               result.data = {}
             }
             resolve(result);
@@ -5706,6 +5750,7 @@ module.exports = {
   CreateAdvert,
   LoginWithPIN,
   LoginWithPINSetUp,
+  LoginWithPINToggle,
   // merchant
   GetMerchantDetails,
   MerchantVerifyCash,
