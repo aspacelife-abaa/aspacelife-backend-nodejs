@@ -5590,6 +5590,51 @@ const LoginWithPIN = (params) => {
     })
   });
 }
+
+const LoginWithPINSetUp = (params) => {
+  return new Promise((resolve) => {
+    AntiHacking(params).then((data) => {
+      if (data.error) {
+        resolve({
+          status: false,
+          data: {},
+          message: 'Oops! try again next time.'
+        })
+        return;
+      }
+      const Logindata = data.data;
+      CheckEmptyInput(Logindata, ["pin", "token"]).then((errorMessage) => {
+        if (errorMessage) {
+          resolve({
+            status: false,
+            data: {},
+            message: errorMessage.toString()
+          })
+        } else {
+        CheckAccess(Logindata.token).then((response) => {
+        if (response.status) {
+          const currentUser = response.data;
+          const pin = EnCrypPassword(String(Logindata.pin));
+          QueryDB(`update users set loginPIN='${pin}' where PhoneNumber='${currentUser.PhoneNumber}' `).then((result)=>{
+            if (result.status) {
+              result.message = "Access PIN setup successfully.";
+              // send email
+              // update accessToken
+            } else {
+              result.message = "Oops! Access PIN setup was not successful.";
+              result.data = {}
+            }
+            resolve(result);
+          })
+        }else{
+          resolve(response)
+        }
+        })
+        }
+      })
+    })
+  });
+}
 module.exports = {
   UserLogin,
   Registration,
@@ -5660,6 +5705,7 @@ module.exports = {
   SendPushNotification,
   CreateAdvert,
   LoginWithPIN,
+  LoginWithPINSetUp,
   // merchant
   GetMerchantDetails,
   MerchantVerifyCash,
