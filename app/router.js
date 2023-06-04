@@ -60,6 +60,7 @@ require("./routes/regular/send_msg_to_seller")(app);
 require("./routes/regular/send_push_msg")(app);
 require("./routes/regular/create_advert")(app);
 require("./routes/regular/login_with_pin")(app);
+require("./routes/regular/login_with_pin_setup")(app);
 // merchant account routes
 require("./routes/merchant/account_upgrade")(app);
 require("./routes/merchant/cac_verification")(app);
