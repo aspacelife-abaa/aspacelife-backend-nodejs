@@ -153,6 +153,7 @@ const {
 } = require('./electricity/vtpass_verify_meter');
 const { sha512 } = require('js-sha512');
 const { SendPush } = require('./firebase/push');
+const { NINImageVerification } = require('./NINPrembly');
 
 const UserLogin = (params) => {
   return new Promise((resolve) => {
@@ -5728,6 +5729,41 @@ const GetSubscriptionPlans = (d)=>{
     })
   }); 
 }
+const NINVerificationImage= (d)=>{
+  return new Promise((resolve) => {
+    AntiHacking(d).then((data) => {
+      if (data.error) {
+        resolve({
+          status: false,
+          data: {},
+          message: 'Oops! try again next time.'
+        })
+        return;
+      }
+      const params = data.data;
+      CheckEmptyInput(params, ["token","image","nin"]).then((errorMessage) => {
+        if (errorMessage) {
+          resolve({
+            status: false,
+            data: {},
+            message: errorMessage.toString()
+          })
+        } else {
+        CheckAccess(params.token).then((response) => {
+        if (response.status) {
+        const currentUser = response.data;
+        NINImageVerification(params).then((res)=>{
+        resolve(res)
+        })
+        }else{
+          resolve(response)
+        }
+        })
+        }
+      })
+    })
+  }); 
+}
 module.exports = {
   UserLogin,
   Registration,
@@ -5801,6 +5837,7 @@ module.exports = {
   LoginWithPINSetUp,
   LoginWithPINToggle,
   GetSubscriptionPlans,
+  NINVerificationImage,
   // merchant
   GetMerchantDetails,
   MerchantVerifyCash,
