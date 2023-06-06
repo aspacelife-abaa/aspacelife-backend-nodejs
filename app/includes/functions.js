@@ -5741,7 +5741,7 @@ const NINVerificationImage= (d)=>{
         return;
       }
       const params = data.data;
-      CheckEmptyInput(params, ["token","image","nin"]).then((errorMessage) => {
+      CheckEmptyInput(params, ["faceImage","nin"]).then((errorMessage) => {
         if (errorMessage) {
           resolve({
             status: false,
@@ -5749,15 +5749,8 @@ const NINVerificationImage= (d)=>{
             message: errorMessage.toString()
           })
         } else {
-        CheckAccess(params.token).then((response) => {
-        if (response.status) {
-        const currentUser = response.data;
         NINImageVerification(params).then((res)=>{
         resolve(res)
-        })
-        }else{
-          resolve(response)
-        }
         })
         }
       })
