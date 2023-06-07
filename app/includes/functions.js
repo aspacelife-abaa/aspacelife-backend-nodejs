@@ -5749,9 +5749,25 @@ const NINVerificationImage= (d)=>{
             message: errorMessage.toString()
           })
         } else {
-        NINImageVerification(params).then((res)=>{
+          const fs = require("fs");
+        if(fs.existsSync(params.faceImage.path))
+        {
+          fs.readFile(params.faceImage.path, "base64", function(err, buffer){
+            if ( err ) {
+                console.log('In read file')
+                resolve(err)
+            } else {
+          NINImageVerification({
+          nin:params.nin,
+          faceImage:"data:image/jpeg;base64,"+buffer
+        }).then((res)=>{
         resolve(res)
         })
+            }
+        })
+      }else{
+        resolve("not exist")
+      }
         }
       })
     })
