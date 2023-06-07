@@ -2,6 +2,7 @@ const {
   ConnectionConfig,
   createConnection
 } = require('mysql');
+const fs = require("fs");
 const Moment = require('moment');
 const EmailValidator = require('email-validator');
 const Md5 = require('md5');
@@ -5749,13 +5750,15 @@ const NINVerificationImage= (d)=>{
             message: errorMessage.toString()
           })
         } else {
-          const fs = require("fs");
-        if(fs.existsSync(params.faceImage.path))
-        {
-          fs.readFile(params.faceImage.path, "base64", function(err, buffer){
+        
+        fs.readFile(params.faceImage.path, "base64", function(err, buffer){
             if ( err ) {
                 console.log('In read file')
-                resolve(err)
+                resolve({
+                  status:false,
+                  message:err.message,
+                  data:{}
+                })
             } else {
           NINImageVerification({
           nin:params.nin,
@@ -5765,9 +5768,6 @@ const NINVerificationImage= (d)=>{
         })
             }
         })
-      }else{
-        resolve("not exist")
-      }
         }
       })
     })
