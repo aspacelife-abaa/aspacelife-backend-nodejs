@@ -2,7 +2,6 @@ const {
   ConnectionConfig,
   createConnection
 } = require('mysql');
-const fs = require("fs");
 const Moment = require('moment');
 const EmailValidator = require('email-validator');
 const Md5 = require('md5');
@@ -5750,23 +5749,11 @@ const NINVerificationImage= (d)=>{
             message: errorMessage.toString()
           })
         } else {
-        
-        fs.readFile(params.faceImage.path, "base64", function(err, buffer){
-            if ( err ) {
-                console.log('In read file')
-                resolve({
-                  status:false,
-                  message:err.message,
-                  data:{}
-                })
-            } else {
-          NINImageVerification({
+        NINImageVerification({
           nin:params.nin,
-          faceImage:"data:image/jpeg;base64,"+buffer
+          faceImage:params.faceImage
         }).then((res)=>{
         resolve(res)
-        })
-            }
         })
         }
       })
