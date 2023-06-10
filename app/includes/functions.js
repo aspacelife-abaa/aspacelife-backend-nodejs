@@ -4545,9 +4545,14 @@ const ConfirmPayment = (data) => {
                               message: "Account linked successfully."
                             })
                           } else {
+                          const accountData = resp.result[0]
+                          if(accountData.is_active == "0")
+                          {
+                            QueryDB(`update bank set is_active="1" where phone_number='${currentUser.PhoneNumber}' and account_number='${requestData.account_number} limit 1`);
+                          }
                           resolve({
-                            status: false,
-                            message: "Account already linked."
+                            status: true,
+                            message: "Account linked successfully."
                           })
                         }
                       })
