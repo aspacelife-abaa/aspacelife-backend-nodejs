@@ -4346,7 +4346,11 @@ const GeneratePaymentLink = (data) => {
         return;
       }
       const requestData = data.data;
-      const checkList = ["token", "amount", "channel"];
+      const checkList = ["token", "channel"];
+      if(requestData.channel !== "bank")
+      {
+        checkList.push("amount")
+      }
       CheckEmptyInput(requestData, checkList).then((errorMessage) => {
         if (errorMessage) {
           resolve({
@@ -4364,16 +4368,16 @@ const GeneratePaymentLink = (data) => {
           const currentUser = res.data;
           PaystackURL({
             email: currentUser.EmailAddress,
-            amount: requestData.amount,
+            amount: requestData.channel !== "bank"?requestData.amount:100,
             channel: requestData.channel
           }).then((res) => {
             if (res.status) {
               SaveTransactionHistory({
-                amount: String(requestData.amount),
+                amount: requestData.channel !== "bank"?String(requestData.amount):"100",
                 beneficiary_account: String(currentUser.PhoneNumber),
                 beneficiary_bank_name: "Wallet funding",
                 customer_name: `${currentUser.FirstName} ${currentUser.LastName}`,
-                memo: `Wallet funding via Paystack`,
+                memo: `Bank account verification via Paystack (channel : ${requestData.channel})`,
                 PhoneNumber: String(currentUser.PhoneNumber),
                 token: "",
                 transaction_ref: res.data.reference,
@@ -4474,6 +4478,10 @@ const ConfirmPayment = (data) => {
       }
       const requestData = data.data;
       const checkList = ["token", "transactionRef"];
+      if(requestData.account_number)
+      {
+        checkList.push("account_number");
+      }
       CheckEmptyInput(requestData, checkList).then((errorMessage) => {
         if (errorMessage) {
           resolve({
@@ -4502,11 +4510,10 @@ const ConfirmPayment = (data) => {
                       data: {}
                     })
                   } else if (trx.transaction_status == 'pending') {
-                    if (paystackData.authorization.channel == "bank") {
-                      QueryDB(`select * from bank where account_number='${paystackData.authorization.bin}${paystackData.authorization.last4}' and bank_name='${paystackData.authorization.bank}' limit 1`).then((resp) => {
-                        if (!res.status) {
-                          QueryDB(`INSERT INTO bank(
-                            phone_number, 
+                    if (paystackData.authorization.channel == "bank" && String(trx.memo).includes("channel : bank")) {
+                      QueryDB(`select * from bank where account_number='${requestData.account_number}' and bank_name='${paystackData.authorization.bank}' limit 1`).then((resp) => {
+                        if (!resp.status) {
+                          QueryDB(`INSERT INTO bank(phone_number, 
                             account_number,
                             bank_code,
                             bank_name,
@@ -4514,38 +4521,54 @@ const ConfirmPayment = (data) => {
                             account_name,
                             meta_data,
                             is_active
-                            )VALUES('${currentUser.PhoneNumber}',
-                            '${paystackData.authorization.bin}${paystackData.authorization.last4}',
+                            ) VALUES ('${currentUser.PhoneNumber}',
+                            '${requestData.account_number}',
                             '${paystackData.authorization.authorization_code}',
                             '${paystackData.authorization.bank}',
                             '${requestData.transactionRef}',
                             '${currentUser.FirstName} ${currentUser.LastName}',
-                            '${JSON.stringify(paystackData)}','1')`)
-                        } else {
+                            '${JSON.stringify(paystackData)}','1')`);
+                            QueryDB(`update transactions set transaction_status='${paystackData.status}',transaction_type='credit' where transaction_ref='${paystackData.reference}' limit 1`);
+                            UpdateWalletBalance({
+                              PhoneNumber: currentUser.PhoneNumber
+                            }, trx.amount, "credit", paystackData.reference).then((bal) => {
+                              if (bal.status) {
+                                const sms = `Credit \nAmt:${NairaSymbol}${returnComma(trx.amount)} \nAcc:${MaskNumber(String(String(currentUser.PhoneNumber)))} \nDesc: wallet funding via Paystack \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(bal.data.balance)}`;
+                                console.log(sms);
+                                SendSMS(GetDefaultPhoneNumber(currentUser, String(currentUser.PhoneNumber)), sms);
+                                // SendEmail
+                                SendEmail(`${AppName} Credit alert`, sms, currentUser);
+                              }
+                            })
+                            resolve({
+                              status: false,
+                              message: "Account linked successfully."
+                            })
+                          } else {
                           resolve({
                             status: false,
                             message: "Account already linked."
                           })
                         }
                       })
+                    }else{
+                      QueryDB(`update transactions set transaction_status='${paystackData.status}',transaction_type='credit' where transaction_ref='${paystackData.reference}' limit 1`);
+                            UpdateWalletBalance({
+                              PhoneNumber: currentUser.PhoneNumber
+                            }, trx.amount, "credit", paystackData.reference).then((bal) => {
+                              if (bal.status) {
+                                const sms = `Credit \nAmt:${NairaSymbol}${returnComma(trx.amount)} \nAcc:${MaskNumber(String(String(currentUser.PhoneNumber)))} \nDesc: wallet funding via Paystack \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(bal.data.balance)}`;
+                                console.log(sms);
+                                SendSMS(GetDefaultPhoneNumber(currentUser, String(currentUser.PhoneNumber)), sms);
+                                // SendEmail
+                                SendEmail(`${AppName} Credit alert`, sms, currentUser);
+                              }
+                            })
+                            resolve({
+                              status: false,
+                              message: "Transaction was successfully."
+                            }) 
                     }
-                    QueryDB(`update transactions set transaction_status='${paystackData.status}',transaction_type='credit' where transaction_ref='${paystackData.reference}' limit 1`);
-                    UpdateWalletBalance({
-                      PhoneNumber: currentUser.PhoneNumber
-                    }, trx.amount, "credit", paystackData.reference).then((bal) => {
-                      if (bal.status) {
-                        const sms = `Credit \nAmt:${NairaSymbol}${returnComma(trx.amount)} \nAcc:${MaskNumber(String(String(currentUser.PhoneNumber)))} \nDesc: wallet funding via Paystack \nTime:${Moment().format("DD/MM/YYYY hh:mm A")} \nTotal Bal:${NairaSymbol}${returnComma(bal.data.balance)}`;
-                        console.log(sms);
-                        SendSMS(GetDefaultPhoneNumber(currentUser, String(currentUser.PhoneNumber)), sms);
-                        // SendEmail
-                        SendEmail(`${AppName} Credit alert`, sms, currentUser);
-                      }
-                    })
-                    resolve({
-                      status: true,
-                      message: "Transaction confirmed successfully.",
-                      data: {}
-                    });
                   } else if (trx.transaction_status == 'success') {
                     resolve({
                       status: false,
@@ -5760,6 +5783,44 @@ const NINVerificationImage= (d)=>{
     })
   }); 
 }
+
+const PINReset= (d)=>{
+  return new Promise((resolve) => {
+    AntiHacking(d).then((data) => {
+      if (data.error) {
+        resolve({
+          status: false,
+          data: {},
+          message: 'Oops! try again next time.'
+        })
+        return;
+      }
+      const params = data.data;
+      CheckEmptyInput(params, ["token"]).then((errorMessage) => {
+        if (errorMessage) {
+          resolve({
+            status: false,
+            data: {},
+            message: errorMessage.toString()
+          })
+        } else {
+       CheckAccess(params.token).then((response) => {
+       if (response.status) {
+       const currentUser = response.data;
+        //  QueryDB(`update users set from subscriptionPlans order by sbID asc`).then((result)=>{
+       const randFourDigit = generateRandomNumber(4);
+       const pin = EnCrypPassword(randFourDigit);
+       resolve(pin)
+        // })
+            }else{
+              resolve(response)      
+            }
+          })
+        }
+      })
+    })
+  }); 
+}
 module.exports = {
   UserLogin,
   Registration,
@@ -5834,6 +5895,7 @@ module.exports = {
   LoginWithPINToggle,
   GetSubscriptionPlans,
   NINVerificationImage,
+  PINReset,
   // merchant
   GetMerchantDetails,
   MerchantVerifyCash,

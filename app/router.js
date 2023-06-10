@@ -64,6 +64,7 @@ require("./routes/regular/login_with_pin_setup")(app);
 require("./routes/regular/login_with_pin_toggle")(app);
 require("./routes/regular/getplans")(app);
 require("./routes/regular/nin_verification_image")(app);
+require("./routes/regular/login_with_pin_reset")(app);
 
 // merchant account routes
 require("./routes/merchant/account_upgrade")(app);
