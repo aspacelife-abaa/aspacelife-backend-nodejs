@@ -4541,7 +4541,7 @@ const ConfirmPayment = (data) => {
                               }
                             })
                             resolve({
-                              status: false,
+                              status: true,
                               message: "Account linked successfully."
                             })
                           } else {
