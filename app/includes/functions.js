@@ -249,9 +249,7 @@ const Registration = (userInfo) => {
       }
       const list = ["cac_number", "company_name", "company_address", "registration_date"];
       if (userData.account_type == "merchant") {
-        checkList = checkList.concat(list).filter((a, i) => !["Nin", "dob"].includes(a));
-        delete userData.Nin;
-        delete userData.dob;
+        checkList = checkList.concat(list)
       }
 
       CheckEmptyInput(userData, checkList).then((errorMessage) => {
@@ -263,7 +261,11 @@ const Registration = (userInfo) => {
           })
           return;
         }
-
+        if (userData.account_type == "merchant") {
+          checkList = checkList.filter((a, i) => !["Nin", "dob"].includes(a));
+          delete userData.Nin;
+          delete userData.dob;
+        }
         // check email existence, check NIN existence, check mobile number existence
         QueryDB(`select * from users where PhoneNumber='${userData.PhoneNumber}' or EmailAddress='${userData.EmailAddress}' or Nin='${userData.Nin}' limit 1`).then((response) => {
           if (response.status) {
