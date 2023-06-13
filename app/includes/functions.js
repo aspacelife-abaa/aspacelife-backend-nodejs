@@ -244,6 +244,9 @@ const Registration = (userInfo) => {
       if (userData["MiddleName"] !== undefined) {
         checkList.push("MiddleName")
       }
+      if (userData["code"] !== undefined) {
+        checkList.push("code")
+      }
       const list = ["cac_number", "company_name", "company_address", "registration_date"];
       if (userData.account_type == "merchant") {
         checkList = checkList.concat(list).filter((a, i) => !["Nin", "dob"].includes(a));
