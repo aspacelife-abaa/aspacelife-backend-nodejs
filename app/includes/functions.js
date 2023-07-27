@@ -154,7 +154,7 @@ const {
 const { sha512 } = require('js-sha512');
 const { SendPush } = require('./firebase/push');
 const { NINImageVerification } = require('./NINPrembly');
-
+const moment = require("moment");
 const UserLogin = (params) => {
   return new Promise((resolve) => {
     AntiHacking(params).then((data) => {
@@ -4302,10 +4302,10 @@ const GetSocialFeed = (data) => {
           return;
         }
         CheckAccess(requestData.token).then((res) => {
-          if (!res.status) {
-            resolve(res)
-            return;
-          }
+          // if (!res.status) {
+          //   resolve(res)
+          //   return;
+          // }
           const currentUser = res.data;
           let qry = `select * from social_feeds left join users on social_feeds.sFPhoneNumber=users.PhoneNumber order by social_feeds.sFId desc limit ${requestData.limit != undefined?requestData.limit:"0,50"}`;
           QueryDB(qry).then((socialResP) => {
@@ -4320,15 +4320,28 @@ const GetSocialFeed = (data) => {
 
               }
               return {
-                id: a.sFId,
-                content: a.sFcontent,
+                postId: a.sFId,
+                _key: a.sFId,
+                description: a.sFcontent,
                 title: a.sFtitle,
-                date: a.sFDate,
-                image: img,
-                user: {
-                  mobile: a.sFPhoneNumber,
-                  name: a.FirstName + " " + a.LastName,
-                  email: a.EmailAddress
+                createdDate: a.sFDate,
+                createdTime:moment(a.sFDate).format("hh:mm A"),
+                createdTimeStamp:a.sFDate,
+                category:a.sCategory,
+                color:"",
+                imageList:[
+                  {imageUrl:img}
+                ],
+                reactionList:[],
+                price:"",
+                commentList:[],
+                type:"",
+                userData: {
+                  phoneNumber: a.sFPhoneNumber,
+                  fullName: a.FirstName + " " + a.LastName,
+                  emailAddress: a.EmailAddress,
+                  accountImage:"",
+                  accountType:""
                 }
               }
             })
