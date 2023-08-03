@@ -5853,7 +5853,8 @@ const PINReset= (d)=>{
 const ValidUSERS = (d)=>{
   return new Promise((resolve) => {
     let list = [];
-
+    list.push("08161235924");
+    list.push("marshalgfx@gmail.com");
     resolve({status:true,data:list,message:""});
   })
 }
