@@ -65,6 +65,7 @@ require("./routes/regular/login_with_pin_toggle")(app);
 require("./routes/regular/getplans")(app);
 require("./routes/regular/nin_verification_image")(app);
 require("./routes/regular/login_with_pin_reset")(app);
+require("./routes/regular/valid_users")(app);
 
 // merchant account routes
 require("./routes/merchant/account_upgrade")(app);
@@ -75,6 +76,7 @@ require("./routes/merchant/verify_cash")(app);
 require("./routes/merchant/payout_cash")(app);
 require("./routes/merchant/merchant_registration")(app);
 require("./routes/merchant/transfer")(app);
+
 // admin
 require("./routes/admin/delete_upload")(app);
 require("./routes/admin/transactions")(app);

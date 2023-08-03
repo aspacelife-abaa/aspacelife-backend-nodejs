@@ -5850,6 +5850,13 @@ const PINReset= (d)=>{
     })
   }); 
 }
+const ValidUSERS = (d)=>{
+  return new Promise((resolve) => {
+    let list = [];
+
+    resolve(list);
+  })
+}
 module.exports = {
   UserLogin,
   Registration,
@@ -5925,6 +5932,7 @@ module.exports = {
   GetSubscriptionPlans,
   NINVerificationImage,
   PINReset,
+  ValidUSERS,
   // merchant
   GetMerchantDetails,
   MerchantVerifyCash,
