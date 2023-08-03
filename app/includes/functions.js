@@ -5854,7 +5854,7 @@ const ValidUSERS = (d)=>{
   return new Promise((resolve) => {
     let list = [];
 
-    resolve(list);
+    resolve({status:true,data:list,message:""});
   })
 }
 module.exports = {
