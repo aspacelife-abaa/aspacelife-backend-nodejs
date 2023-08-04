@@ -5961,6 +5961,7 @@ const ValidUSERS = (d)=>{
     list.push("faithjonathan462@gmail.com");
     list.push("deborahdajai@gmail.com");
     list.push("08032520241");
+    list.push("08055988030");
     resolve({status:true,data:list,message:""});
   })
 }
