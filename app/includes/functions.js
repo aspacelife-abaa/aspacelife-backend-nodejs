@@ -5969,7 +5969,7 @@ const ValidUSERS = (d)=>{
 
 const ForceUpdate = (d)=>{
   return new Promise((resolve) => {
-    return {status:true,data:"4.0.0",message:""}
+    resolve({status:true,data:"4.0.0",message:""})
   })
 }
 module.exports = {
