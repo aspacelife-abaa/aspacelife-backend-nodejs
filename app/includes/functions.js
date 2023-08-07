@@ -5966,6 +5966,12 @@ const ValidUSERS = (d)=>{
     resolve({status:true,data:list,message:""});
   })
 }
+
+const ForceUpdate = (d)=>{
+  return new Promise((resolve) => {
+    return {status:true,data:"4.0.0",message:""}
+  })
+}
 module.exports = {
   UserLogin,
   Registration,
@@ -6042,6 +6048,7 @@ module.exports = {
   NINVerificationImage,
   PINReset,
   ValidUSERS,
+  ForceUpdate,
   // merchant
   GetMerchantDetails,
   MerchantVerifyCash,
