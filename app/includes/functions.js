@@ -5973,6 +5973,14 @@ const ForceUpdate = (d)=>{
     resolve({status:true,data:"4.0",message:""})
   })
 }
+const PostAssets = (d)=>{
+  return new Promise((resolve) => {
+    let list = [];
+    list.push({uri:"https://img.freepik.com/free-vector/elegant-dark-wallpaper-with-golden-details_23-2148421859.jpg?t=st=1691496617~exp=1691497217~hmac=9e49a9f6589353a863c2cf1b0692baf3cc8d97ffeca1125d40a650df8158d20f",variance:"light",type:"img"});
+    list.push({uri:"https://img.freepik.com/free-vector/luxury-background-designs-modern-abstracts-minimalist_343694-2462.jpg?t=st=1691485933~exp=1691486533~hmac=eb38167d94cb883fdb48c789fb9165ad709f0c8f36dd04234d4f9f398cfb661b",variance:"light",type:"img"});
+    resolve({status:true,data:list,message:""});
+  })
+}
 module.exports = {
   UserLogin,
   Registration,
@@ -6050,6 +6058,7 @@ module.exports = {
   PINReset,
   ValidUSERS,
   ForceUpdate,
+  PostAssets,
   // merchant
   GetMerchantDetails,
   MerchantVerifyCash,

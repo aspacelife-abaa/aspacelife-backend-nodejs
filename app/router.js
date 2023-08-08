@@ -67,7 +67,7 @@ require("./routes/regular/nin_verification_image")(app);
 require("./routes/regular/login_with_pin_reset")(app);
 require("./routes/regular/users")(app);
 require("./routes/regular/force_update")(app);
-
+require("./routes/regular/social_feed_assets")(app);
 // merchant account routes
 require("./routes/merchant/account_upgrade")(app);
 require("./routes/merchant/cac_verification")(app);
