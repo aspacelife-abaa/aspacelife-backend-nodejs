@@ -5978,9 +5978,9 @@ const ForceUpdate = (d)=>{
 const PostAssets = (d)=>{
   return new Promise((resolve) => {
     let list = [];
-    list.push({uri:"https://img.freepik.com/free-vector/elegant-dark-wallpaper-with-golden-details_23-2148421859.jpg?t=st=1691496617~exp=1691497217~hmac=9e49a9f6589353a863c2cf1b0692baf3cc8d97ffeca1125d40a650df8158d20f",variance:"light",type:"img"});
-    list.push({uri:"https://img.freepik.com/free-vector/luxury-background-designs-modern-abstracts-minimalist_343694-2462.jpg?t=st=1691485933~exp=1691486533~hmac=eb38167d94cb883fdb48c789fb9165ad709f0c8f36dd04234d4f9f398cfb661b",variance:"light",type:"img"});
-    list.push({uri:"https://img.freepik.com/free-vector/pink-flower-frame-background-with-watercolor_65186-2566.jpg?w=1480&t=st=1691496857~exp=1691497457~hmac=244af7f3a9fc0b665a39a5b4008f7f7677b301f5610e8e9d67b5cee2f300bb3f",variance:"light",type:"img"});
+    list.push({value:"https://img.freepik.com/free-vector/elegant-dark-wallpaper-with-golden-details_23-2148421859.jpg?t=st=1691496617~exp=1691497217~hmac=9e49a9f6589353a863c2cf1b0692baf3cc8d97ffeca1125d40a650df8158d20f",variance:"light",type:"img"});
+    list.push({value:"https://img.freepik.com/free-vector/luxury-background-designs-modern-abstracts-minimalist_343694-2462.jpg?t=st=1691485933~exp=1691486533~hmac=eb38167d94cb883fdb48c789fb9165ad709f0c8f36dd04234d4f9f398cfb661b",variance:"light",type:"img"});
+    list.push({value:"https://img.freepik.com/free-vector/pink-flower-frame-background-with-watercolor_65186-2566.jpg?w=1480&t=st=1691496857~exp=1691497457~hmac=244af7f3a9fc0b665a39a5b4008f7f7677b301f5610e8e9d67b5cee2f300bb3f",variance:"light",type:"img"});
     resolve({status:true,data:list,message:""});
   })
 }
