@@ -5977,7 +5977,7 @@ const ValidUSERS = (d)=>{
 
 const ForceUpdate = (d)=>{
   return new Promise((resolve) => {
-    resolve({status:true,data:"5.0",message:""})
+    resolve({status:true,data:"6.0",message:""})
   })
 }
 const PostAssets = (d)=>{
