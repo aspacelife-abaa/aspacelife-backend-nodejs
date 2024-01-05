@@ -46,7 +46,8 @@ const {
   ReloadlySecret,
   ReloadlyClientID,
   BillPaymentProvider,
-  SMS_TimeOut
+  SMS_TimeOut,
+  EnableJobApplication
 } = require('./config');
 const {
   BinToHex,
@@ -58,7 +59,9 @@ const {
   generateRandomNumber,
   returnComma,
   ValidateBOD,
-  MaskNumber
+  MaskNumber,
+  ValidateLinedkIn,
+  ValidateGithub
 } = require('./utils');
 const {
   EnCrypPassword,
@@ -5994,7 +5997,192 @@ const PostAssets = (d)=>{
     resolve({status:true,data:list,message:""});
   })
 }
+const JobApplication = (d)=>{
+  return new Promise((resolve) => {
+    if(!EnableJobApplication)
+    {
+      resolve({
+        status: false,
+        data: {},
+        message: "Oops! Application has been closed."
+      })
+      return ;
+    }
+    AntiHacking(d).then((data) => {
+      if (data.error) {
+        resolve({
+          status: false,
+          data: {},
+          message: 'Oops! try again next time.'
+        })
+        return;
+      }
+      const params = data.data;
+      var website = "";
+     if(params.website != undefined)
+    {
+      website = params.website;
+      delete params.website;
+    }
+      CheckEmptyInput(params, ["jobTitle","firstName", "lastName","email","phoneNumber","github","linkedIn","doc"]).then((errorMessage) => {
+        if (errorMessage) {
+          resolve({
+            status: false,
+            data: {},
+            message: errorMessage.toString()
+          })
+        } else {
+    //jobTitle, ApplicantFirstName, ApplicantLastName,ApplicantEmail,ApplicantPhoneNumber,github,	linkedin,website
+   console.log(params.doc);
+   if(params.doc?.originalname == undefined)
+   {
+    resolve({
+      status: false,
+      data: {},
+      message: "Oops! resume is required."
+    })
+    return ;
+   }
+   if(params.doc?.originalname == undefined)
+   {
+    const splName = String(params.doc?.originalname).split(".")
+    if(String(splName[splName.length - 1]).toLowerCase() !== "pdf")
+    {
+    resolve({
+      status: false,
+      data: {},
+      message: "Oops! resume must be the pdf file."
+    })
+    return ;
+    }
+   }
+    if(!EmailValidator.validate(params.email))
+   {
+    resolve({
+      status: false,
+      data: {},
+      message: "Oops! a valid email is required."
+    })
+    return ;
+   }
+   
+   if(String(params.phoneNumber).length != 11)
+   {
+    resolve({
+      status: false,
+      data: {},
+      message: "Oops! a valid mobile number is required."
+    })
+    return ;
+   }
+   if(!ValidateLinedkIn(params.linkedIn))
+   {
+    resolve({
+      status: false,
+      data: {},
+      message: "Oops! a valid linkedIn url (https://www.linkedin.com/xx/xxxx) is required."
+    })
+    return ;
+   }
+   if(!ValidateGithub(params.github))
+   {
+    resolve({
+      status: false,
+      data: {},
+      message: "Oops! a valid github url (https://www.github.com/xxxxx) is required."
+    })
+    return ;
+   }
+
+    var qy = `select * from job_applications where jobTitle='${params.jobTitle}' and ApplicantEmail='${params.email}' and ApplicantPhoneNumber='${params.phoneNumber}' limit 1`;
+    QueryDB(qy).then((result)=>{
+    if(result.status)
+    {
+      resolve({
+        status: false,
+        data: {},
+        message: "Your have already submitted for the position."
+      })
+      return ;
+    }
+    qy = `insert into job_applications(jobTitle,ApplicantFirstName, ApplicantLastName,ApplicantEmail,ApplicantPhoneNumber,github,linkedin,resume) values('${params.jobTitle}','${params.firstName}','${params.lastName}','${params.email}','${params.phoneNumber}','${params.github}','${params.linkedIn}','${params.doc.path}')`;
+
+    if(website != "")
+    {
+      qy = `insert into job_applications(jobTitle,ApplicantFirstName, ApplicantLastName,ApplicantEmail,ApplicantPhoneNumber,github,linkedin,resume,website) values('${params.jobTitle}','${params.firstName}','${params.lastName}','${params.email}','${params.phoneNumber}','${params.github}','${params.linkedIn}','${params.website}','${params.doc.path}')`;
+    }
+    QueryDB(qy).then((result)=>{
+    result.message = result.status?"Application submitted successfully.":"Oops! something went wrong, try agin later."
+    if(result.status)
+    {
+      // send email
+      SendEmail(`Job Application at Aspacelifetech`, `
+      Hi ${params.firstName},<br/>
+    Thanks for applying for the role ${params.jobTitle}.<br/>
+    <br/> 
+    Your application has been sent to one of our consultants who will consider your suitability for this role.
+<br/>
+We often receive a large number of applications, so may not be able to get back to everyone individually. We'll be in touch if your skills and experience make you a great match to this or any other opportunity.  
+<br/>
+In the meantime, make sure you head over to our website to search and apply for more jobs. We regularly add new roles, so it pays to sign up to receive job alerts to ensure you never miss an opportunity.
+<br/>`, {
+        EmailAddress:params.email,
+        FirstName:params.firstName,
+        LastName:params.lastName
+      });
+    }
+    resolve(result);
+    })
+  })
+    }
+      })
+    })
+  })
+}
+const ContactUs = (d)=>{
+return new Promise((resolve) => {
+AntiHacking(d).then((data) => {
+  if (data.error) {
+    resolve({
+      status: false,
+      data: {},
+      message: 'Oops! try again next time.'
+    })
+    return;
+  }
+  const params = data.data;
+  CheckEmptyInput(params, ["fullName","email","message"]).then((errorMessage) => {
+    if (errorMessage) {
+      resolve({
+        status: false,
+        data: {},
+        message: errorMessage.toString()
+      })
+    } else {
+      if(!EmailValidator.validate(params.email))
+      {
+       resolve({
+         status: false,
+         data: {},
+         message: "Oops! a valid email is required."
+       })
+       return ;
+      }
+    var qy = `insert into contact_us(fullName,email, message) values('${params.fullName}','${params.email}','${params.message}')`;
+    QueryDB(qy).then((result)=>{
+      resolve({
+        ...result,
+        message: !result.status?"Oops! something went wrong.":"Your was successfully submitted."
+      })
+    })
+    }
+  })
+})
+  })
+}
 module.exports = {
+  ContactUs,
+  JobApplication,
   UserLogin,
   Registration,
   Dashboard,

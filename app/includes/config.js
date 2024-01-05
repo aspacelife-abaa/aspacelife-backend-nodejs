@@ -98,7 +98,9 @@ const AFRICATALKING_BASEURL = isLive?AFRICATLK_BaseURL:AFRICATLK_BaseURL_SANDBOX
 const TwilioAccID = Twilio_account_id;
 const TwilioToken = Twilio_token;
 const MIMUM_TransferAmount = MIMUMTransferAmount;
+const EnableJobApplication = true;
 module.exports = {
+EnableJobApplication,
 version,
 AFRICATALKING_BASEURL,
 jwtSecret,

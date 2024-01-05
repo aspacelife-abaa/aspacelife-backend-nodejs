@@ -11,6 +11,7 @@ let  appsetting = (req, res, next)=>{
     next();
 }
 const ErrorHandler = (Error,req, res)=>{
+    console.log("all")
     res.status(Error.status || 500);
     res.send({status:false,message:Error.message || "Internal server Error",data:{}});
 }

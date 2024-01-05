@@ -82,5 +82,11 @@ require("./routes/merchant/transfer")(app);
 require("./routes/admin/delete_upload")(app);
 require("./routes/admin/transactions")(app);
 require("./routes/regular/test")(app);
+// aspacelife website api
+require("./routes/website/job-application")(app);
+require("./routes/website/contact_us")(app);
+// base route
 require("./routes/regular/baseroute")(app);
+
+
 }

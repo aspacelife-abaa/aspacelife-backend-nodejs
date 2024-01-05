@@ -317,7 +317,27 @@ function ValidateBOD(str){
     }).join("");
     return firstPart+middlePart+lastPart;
   }
+  function ValidateLinedkIn(str){
+    if(!String(str).includes("https://www.linkedin.com/"))
+    {
+      return false;
+    }
+    const spl = String(str).split(".com");
+    const l = spl.filter((a,i)=>i == spl.length - 1).join("").replace("/","")
+    return l !== "";
+  }
+  function ValidateGithub(str){
+    if(!String(str).includes("https://www.github.com/"))
+    {
+      return false;
+    }
+    const spl = String(str).split(".com");
+    const l = spl.filter((a,i)=>i == spl.length - 1).join("").replace("/","")
+    return l !== "";
+  }
   module.exports = {
+    ValidateGithub,
+    ValidateLinedkIn,
     CountryList,
     MaskNumber,
     ValidateBOD,
