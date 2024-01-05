@@ -976,16 +976,16 @@ const QueryDB = (q) => {
       host: DatabaseHost,
       user: DatabaseUser,
       password: DatabasePassword,
-      database: DatabaseName
+      database: DatabaseName,
+      port: DatabasePort,
     }
-    // if (String(os.homedir().toString()).includes("/Users/")) {
-    //   dbSettings = Object.assign(dbSettings, {
-    //     port: DatabasePort,
-    //     password: "root",
-    //     user: "root",
-    //     database: process.env.DB_database_Local
-    //   });
-    // }
+    if (process.env !== "production") {
+      dbSettings = Object.assign(dbSettings, {
+        password: "root",
+        user: "root",
+        database: process.env.DB_database_Local
+      });
+    }
     console.log(q)
     console.log("dbSettings|", dbSettings)
 
