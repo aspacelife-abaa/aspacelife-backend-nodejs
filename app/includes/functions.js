@@ -6034,7 +6034,7 @@ const JobApplication = (d)=>{
         } else {
     //jobTitle, ApplicantFirstName, ApplicantLastName,ApplicantEmail,ApplicantPhoneNumber,github,	linkedin,website
    console.log(params.doc);
-   if(params.doc?.originalname == undefined)
+   if(`${params.doc.originalname}` == "undefined")
    {
     resolve({
       status: false,
@@ -6043,9 +6043,9 @@ const JobApplication = (d)=>{
     })
     return ;
    }
-   if(params.doc?.originalname == undefined)
+   if(`${params.doc.originalname}` == "undefined")
    {
-    const splName = String(params.doc?.originalname).split(".")
+    const splName = String(`${params.doc.originalname}`).split(".")
     if(String(splName[splName.length - 1]).toLowerCase() !== "pdf")
     {
     resolve({
