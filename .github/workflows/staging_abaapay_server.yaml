@@ -10,7 +10,7 @@ jobs:
     - name: 📂 Sync files
       uses: SamKirkland/FTP-Deploy-Action@v4.3.4
       with:
-        server-dir: /abaapay/
+        server-dir: /api/
         server: ${{ secrets.STAGING_SERVER }}
         username: ${{ secrets.STAGING_USERNAME }}
         password: ${{ secrets.STAGING_PASSWORD }}
